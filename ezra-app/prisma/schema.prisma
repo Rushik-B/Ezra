@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")  // your Supabase DATABASE_URL
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  name           String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  accounts       OAuthAccount[]
+  settings       UserSettings?
+  threads        Thread[]
+  feedbacks      Feedback[]
+  autonomyRules  AutonomyRule[]
+}
+
+model OAuthAccount {
+  id                   String    @id @default(cuid())
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId               String
+  provider             String
+  providerAccountId    String
+  accessToken          String
+  refreshToken         String?
+  scope                String?
+  tokenType            String?
+  expiresAt            Int?
+  createdAt            DateTime  @default(now())
+
+  @@unique([provider, providerAccountId])
+}
+
+model Thread {
+  id           String    @id @default(uuid())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  subject      String
+  snippet      String?
+  emails       Email[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Email {
+  id           String     @id @default(uuid())
+  thread       Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId     String
+  messageId    String     @unique
+  from         String
+  to           String[]
+  cc           String[]   @default([])
+  subject      String
+  body         String     // raw HTML/text
+  snippet      String?
+  isSent       Boolean    @default(false)
+  isDraft      Boolean    @default(false)
+  embedding    Embedding?
+  feedback     Feedback?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Embedding {
+  id         String    @id @default(cuid())
+  email      Email     @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  emailId    String    @unique
+  vector     Json      // store your embedding array here
+  createdAt  DateTime  @default(now())
+}
+
+model Feedback {
+  id         String          @id @default(cuid())
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  email      Email           @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  emailId    String          @unique
+  action     FeedbackAction
+  editDelta  Json?           // optional diff or edit metadata
+  createdAt  DateTime        @default(now())
+}
+
+enum FeedbackAction {
+  ACCEPTED
+  EDITED
+  REJECTED
+}
+
+model AutonomyRule {
+  id         String     @id @default(cuid())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  sender     String?    // e.g. specific email or domain wildcard
+  action     ActionType
+  createdAt  DateTime   @default(now())
+}
+
+enum ActionType {
+  DRAFT_ONLY
+  AUTO_SEND
+  IGNORE
+}
+
+model UserSettings {
+  id             String    @id @default(cuid())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String    @unique
+  autonomyLevel  Int       @default(0)   // 0–100 "autonomy dial"
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+} 
