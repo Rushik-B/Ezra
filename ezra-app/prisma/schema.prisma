@@ -11,6 +11,7 @@ model User {
   id             String          @id @default(uuid())
   email          String          @unique
   name           String?
+  emailsFetched  Boolean         @default(false)  // Track if initial email fetch is complete
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   accounts       OAuthAccount[]

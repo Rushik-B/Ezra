@@ -1,13 +1,14 @@
 # Ezra - AI Email Assistant
 
-A Next.js application with Google OAuth integration and Supabase database for Gmail access. This is the foundation for an AI-powered email assistant.
+A Next.js application with Google OAuth integration, Gmail API, and Supabase database for intelligent email management. This is the foundation for an AI-powered email assistant.
 
 ## Features
 
-- ✅ Google OAuth authentication
-- ✅ Gmail API access permissions
+- ✅ Google OAuth authentication with Gmail API access
+- ✅ Fetch and store 500 recent emails from Gmail
 - ✅ Supabase PostgreSQL database with Prisma ORM
 - ✅ User management and OAuth account storage
+- ✅ Email threading and organization
 - ✅ Clean, modern UI with Tailwind CSS
 - ✅ Session management with NextAuth.js
 - ✅ TypeScript support
@@ -92,19 +93,30 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## How to Use
+
+1. **Sign In**: Click "Sign in with Google" and authorize Gmail access
+2. **Fetch Emails**: Click "Fetch Recent Emails (500)" to import your emails
+3. **View Stats**: See your email count and conversation threads
+4. **Monitor Progress**: Watch the real-time status updates during email fetching
+
 ## Project Structure
 
 ```
 src/
 ├── app/
-│   ├── api/auth/[...nextauth]/route.ts  # NextAuth API route
+│   ├── api/
+│   │   ├── auth/[...nextauth]/route.ts  # NextAuth API route
+│   │   ├── fetch-emails/route.ts        # Gmail email fetching API
+│   │   └── email-stats/route.ts         # User email statistics API
 │   ├── auth/signin/page.tsx             # Custom sign-in page
 │   ├── layout.tsx                       # Root layout with SessionProvider
-│   └── page.tsx                         # Main page with auth logic
+│   └── page.tsx                         # Main page with email fetching UI
 ├── components/
 │   └── SessionProvider.tsx              # Client-side session provider
 ├── lib/
-│   ├── auth.ts                          # NextAuth configuration with Prisma
+│   ├── auth.ts                          # NextAuth configuration
+│   ├── gmail.ts                         # Gmail API service
 │   └── prisma.ts                        # Prisma client instance
 ├── types/
 │   └── next-auth.d.ts                   # TypeScript declarations
@@ -118,18 +130,40 @@ The application uses the following main models:
 
 - **User**: Core user information and relationships
 - **OAuthAccount**: Google OAuth tokens and account data
-- **Thread**: Email conversation threads
-- **Email**: Individual email messages with metadata
-- **Embedding**: Vector embeddings for AI processing
-- **Feedback**: User feedback on AI-generated responses
-- **AutonomyRule**: User-defined automation rules
+- **Thread**: Email conversation threads grouped by subject
+- **Email**: Individual email messages with full content
+- **Embedding**: Vector embeddings for AI processing (ready for future use)
+- **Feedback**: User feedback on AI-generated responses (ready for future use)
+- **AutonomyRule**: User-defined automation rules (ready for future use)
 - **UserSettings**: User preferences and autonomy levels
+
+## Gmail Integration Features
+
+### Email Fetching
+- Fetches up to 500 recent emails per user
+- Processes emails in batches of 10 to respect rate limits
+- Excludes chat messages (`-in:chats` query)
+- Handles both sent and received emails
+- Extracts email headers, body, and metadata
+
+### Email Processing
+- Parses HTML and plain text email bodies
+- Extracts sender, recipients, and CC information
+- Groups emails into conversation threads by subject
+- Stores email dates and Gmail labels (SENT, DRAFT)
+- Prevents duplicate email storage
+
+### Error Handling
+- Graceful handling of API rate limits
+- Continues processing if individual emails fail
+- Detailed logging for debugging
+- User-friendly error messages
 
 ## Authentication Flow
 
 1. **Unauthenticated**: Shows a clean sign-in page with Google OAuth button
 2. **Authentication**: Creates/updates user in database with OAuth tokens
-3. **Authenticated**: Shows the main dashboard with user info and sign-out option
+3. **Authenticated**: Shows the main dashboard with email fetching capability
 4. **Database Sync**: User data, settings, and OAuth tokens are stored in Supabase
 
 ## Gmail API Permissions
@@ -154,22 +188,82 @@ npx prisma studio
 npx prisma db push --force-reset
 ```
 
+## API Endpoints
+
+### Authentication
+- `GET/POST /api/auth/[...nextauth]` - NextAuth authentication
+
+### Email Management
+- `POST /api/fetch-emails` - Fetch emails from Gmail and store in database
+- `GET /api/email-stats` - Get user's email and thread counts
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Errors**
+   - Ensure your `DATABASE_URL` is correct in `.env.local`
+   - Make sure your Supabase project is running
+   - Check that you've replaced `[YOUR-PASSWORD]` with your actual password
+
+2. **Gmail API Errors**
+   - Verify your Google OAuth credentials are correct
+   - Ensure Gmail API is enabled in Google Cloud Console
+   - Check that redirect URIs match exactly (including protocol and port)
+
+3. **Authentication Errors**
+   - Generate a new `NEXTAUTH_SECRET` if needed
+   - Restart the development server after changing `.env.local`
+   - Clear browser cookies if authentication seems stuck
+
+4. **Email Fetching Issues**
+   - Check server logs for detailed error messages
+   - Ensure OAuth token has Gmail permissions
+   - Verify user has emails in their Gmail account
+
+### Development Commands
+
+```bash
+# Check TypeScript errors
+npx tsc --noEmit
+
+# Check for linting issues
+npm run lint
+
+# Build for production
+npm run build
+
+# View server logs
+npm run dev (and check terminal output)
+```
+
+## Server Logs
+
+When running `npm run dev`, you'll see detailed logs including:
+- Email fetching progress with batch numbers
+- Individual email processing status
+- Database storage operations
+- Error messages with stack traces
+- Performance metrics
+
 ## Next Steps
 
-This foundation is ready for building the AI email assistant features:
+This foundation is ready for building advanced AI email assistant features:
 
-1. **Email Ingestion**: Fetch and analyze recent emails using Gmail API
+1. **Email Analysis**: Analyze email patterns and writing style
 2. **AI Integration**: Add OpenAI/Gemini for email analysis and generation
-3. **Vector Storage**: Implement embeddings for email content
+3. **Vector Storage**: Implement embeddings for email content search
 4. **Smart Replies**: Generate contextual email responses
 5. **Chrome Extension**: Build sidebar for Gmail integration
+6. **Automation Rules**: Implement user-defined email automation
 
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router
 - **Database**: Supabase (PostgreSQL)
 - **ORM**: Prisma
-- **Authentication**: NextAuth.js with Google OAuth + Prisma Adapter
+- **Authentication**: NextAuth.js with Google OAuth + Custom JWT Strategy
+- **Gmail API**: Google APIs Node.js client
 - **Styling**: Tailwind CSS
 - **Language**: TypeScript
 - **Icons**: React Icons (Heroicons, Google icons)
@@ -191,3 +285,4 @@ For production deployment:
 - Regularly rotate OAuth credentials
 - Database credentials are automatically managed by Supabase
 - All foreign key relationships include `onDelete: Cascade` for data integrity
+- OAuth tokens are securely stored and refreshed automatically 
