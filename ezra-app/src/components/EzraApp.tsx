@@ -45,14 +45,21 @@ export const EzraApp: React.FC = () => {
           setAutoFetchCompleted(true);
           console.log('Auto-fetch skipped or already in progress:', data);
         } else if (response.ok) {
-          setAutoFetchStatus(`Auto-fetch completed! Fetched ${data.emailCount} emails.`);
+          let statusMessage = `Auto-fetch completed! Fetched ${data.emailCount} emails.`;
+          
+          if (data.masterPromptGenerated) {
+            statusMessage += ' 🧠 AI Master Prompt generated!';
+          }
+          
+          setAutoFetchStatus(statusMessage);
           setAutoFetchCompleted(true);
           console.log('Auto-fetch completed:', data);
           
-          // Clear status after 3 seconds
+          // Clear status after longer time if Master Prompt was generated
+          const clearDelay = data.masterPromptGenerated ? 5000 : 3000;
           setTimeout(() => {
             setAutoFetchStatus('');
-          }, 3000);
+          }, clearDelay);
         } else {
           console.error('Auto-fetch failed:', data);
           setAutoFetchStatus('Auto-fetch failed. You can manually fetch emails later.');

@@ -1,5 +1,6 @@
 import { google } from 'googleapis'
 import { prisma } from './prisma'
+import { EmailContextQuery } from '@/types'
 
 export interface EmailData {
   messageId: string
@@ -256,6 +257,11 @@ export class GmailService {
             }
           }
 
+          email.from = email.from?.toLowerCase?.() ?? email.from
+          email.to = email.to?.map?.(addr => addr?.toLowerCase?.() ?? addr) ?? email.to
+          email.cc = email.cc?.map?.(addr => addr?.toLowerCase?.() ?? addr) ?? email.cc
+          email.subject = email.subject?.toLowerCase?.() ?? email.subject
+
           // Use upsert to handle potential duplicates gracefully
           await prisma.email.upsert({
             where: { 
@@ -297,5 +303,165 @@ export class GmailService {
       console.error('Error storing emails in database:', error)
       throw error
     }
+  }
+
+  /**
+   * NEW: Fetch contextual emails based on specific query parameters
+   */
+  async fetchContextualEmails(
+    userId: string,
+    query: EmailContextQuery
+  ): Promise<Array<{
+    from: string;
+    to: string[];
+    subject: string;
+    body: string;
+    date: Date;
+    isSent: boolean;
+    snippet: string;
+  }>> {
+    try {
+      console.log(`🔍 Fetching contextual emails for user ${userId} with query:`, query);
+
+      // Build date filter based on hint
+      let dateFilter = {};
+      const now = new Date();
+      
+      switch (query.dateWindowHint) {
+        case 'recent':
+          const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+          dateFilter = { createdAt: { gte: thirtyDaysAgo } };
+          break;
+        case '6months':
+          const sixMonthsAgo = new Date(now.getTime() - (6 * 30 * 24 * 60 * 60 * 1000));
+          dateFilter = { createdAt: { gte: sixMonthsAgo } };
+          break;
+        case '1year':
+          const oneYearAgo = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+          dateFilter = { createdAt: { gte: oneYearAgo } };
+          break;
+        case 'all':
+        default:
+          dateFilter = {};
+          break;
+      }
+
+      // Build search conditions
+      const searchConditions: any = {
+        thread: {
+          userId
+        },
+        ...dateFilter
+      };
+
+      // Add sender filter if specified
+      if (query.senderFilter && query.senderFilter.length > 0) {
+        searchConditions.OR = [
+          { from: { in: query.senderFilter } },
+          { to: { hasSome: query.senderFilter } }
+        ];
+      }
+
+      // Build keyword search if specified
+      let keywordSearch: any = {};
+      if (query.keywords && query.keywords.length > 0) {
+        const keywordConditions = query.keywords.map(keyword => ({
+          OR: [
+            { subject: { contains: keyword, mode: 'insensitive' } },
+            { body: { contains: keyword, mode: 'insensitive' } }
+          ]
+        }));
+        
+        keywordSearch = {
+          OR: keywordConditions
+        };
+      }
+
+      // Combine conditions
+      const finalConditions = {
+        AND: [
+          searchConditions,
+          ...(Object.keys(keywordSearch).length > 0 ? [keywordSearch] : [])
+        ]
+      };
+
+      console.log('📊 Search conditions built for contextual fetch');
+
+      // Execute search
+      const emails = await prisma.email.findMany({
+        where: finalConditions,
+        orderBy: [
+          { createdAt: 'desc' }
+        ],
+        take: query.maxResults || 15,
+        select: {
+          id: true,
+          from: true,
+          to: true,
+          subject: true,
+          body: true,
+          createdAt: true,
+          isSent: true,
+          snippet: true
+        }
+      });
+
+      console.log(`📧 Found ${emails.length} contextual emails`);
+
+      // Log some debugging info
+      if (emails.length > 0) {
+        console.log(`📅 Date range: ${emails[emails.length - 1].createdAt.toISOString()} to ${emails[0].createdAt.toISOString()}`);
+        const keywordMatches = emails.filter(email => 
+          query.keywords?.some(keyword => 
+            email.subject.toLowerCase().includes(keyword.toLowerCase()) ||
+            email.body.toLowerCase().includes(keyword.toLowerCase())
+          )
+        );
+        console.log(`🔍 Emails matching keywords: ${keywordMatches.length}/${emails.length}`);
+      }
+
+      return emails.map(email => ({
+        from: email.from,
+        to: email.to,
+        subject: email.subject,
+        body: email.body,
+        date: email.createdAt,
+        isSent: email.isSent,
+        snippet: email.snippet || email.body.substring(0, 150) + '...'
+      }));
+    } catch (error) {
+      console.error('❌ Error fetching contextual emails:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Generate a text summary of email context for LLM consumption
+   */
+  generateEmailContextSummary(emails: Array<{
+    from: string;
+    to: string[];
+    subject: string;
+    body: string;
+    date: Date;
+    isSent: boolean;
+    snippet: string;
+  }>): string {
+    if (emails.length === 0) {
+      return 'No relevant email history found for this context.';
+    }
+
+    let summary = `RELEVANT EMAIL HISTORY (${emails.length} emails):\n\n`;
+
+    emails.forEach((email, index) => {
+      const direction = email.isSent ? 'SENT TO' : 'RECEIVED FROM';
+      const otherParty = email.isSent ? email.to.join(', ') : email.from;
+      
+      summary += `${index + 1}. ${direction} ${otherParty} on ${email.date.toLocaleDateString()}\n`;
+      summary += `   Subject: "${email.subject}"\n`;
+      summary += `   Snippet: ${email.snippet}\n\n`;
+    });
+
+    return summary;
   }
 } 

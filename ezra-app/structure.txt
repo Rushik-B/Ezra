@@ -27,7 +27,19 @@
 │   │   │   │   └── route.ts
 │   │   │   ├── email-stats
 │   │   │   │   └── route.ts
-│   │   │   └── fetch-emails
+│   │   │   ├── fetch-emails
+│   │   │   │   └── route.ts
+│   │   │   ├── generate-reply
+│   │   │   │   └── route.ts
+│   │   │   ├── master-prompt
+│   │   │   │   ├── route.ts
+│   │   │   │   ├── activate
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── generate
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── history
+│   │   │   │       └── route.ts
+│   │   │   └── test-reply-generation
 │   │   │       └── route.ts
 │   │   ├── auth
 │   │   │   └── signin
@@ -58,13 +70,29 @@
 │   ├── hooks
 │   ├── lib
 │   │   ├── auth.ts
+│   │   ├── calendarService.ts
+│   │   ├── contextEngine.ts
 │   │   ├── gmail.ts
+│   │   ├── llm.ts
+│   │   ├── masterPromptGenerator.ts
 │   │   ├── mockData.tsx
 │   │   ├── prisma.ts
+│   │   ├── prompts.ts
+│   │   ├── replyGenerator.ts
 │   │   └── utils.ts
+│   ├── prompts
+│   │   ├── defaultMasterPrompt.md
+│   │   ├── distilledMasterPromptGenerator.md
+│   │   ├── finalToolContextGeneratorPrompt.md
+│   │   ├── incomingEmailScannerPrompt.md
+│   │   ├── masterPromptUpdaterFromDistilled.md
+│   │   ├── masterStyleDerivationPrompt.md
+│   │   ├── replyGenerationPrompt.md
+│   │   └── styleAnalysisPrompt.md
 │   └── types
 │       ├── index.ts
 │       └── next-auth.d.ts
 ├── structure.txt
+├── test-reply-generation.js
 ├── tsconfig.json
 └── tsconfig.tsbuildinfo

@@ -19,6 +19,7 @@ model User {
   threads        Thread[]
   feedbacks      Feedback[]
   autonomyRules  AutonomyRule[]
+  masterPrompts  MasterPrompt[]
 }
 
 model OAuthAccount {
@@ -114,4 +115,17 @@ model UserSettings {
   autonomyLevel  Int       @default(0)   // 0–100 "autonomy dial"
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+model MasterPrompt {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  prompt     String    @db.Text
+  version    Int       @default(1)
+  isActive   Boolean   @default(true)
+  isGenerated Boolean  @default(false)  // Whether this was AI-generated or manually created
+  metadata   Json?     // Store generation details like emailsAnalyzed, confidence, etc.
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 } 

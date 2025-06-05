@@ -80,4 +80,87 @@ export interface EmailStats {
   threadCount: number;
 }
 
-export type PageType = 'queue' | 'history' | 'metrics' | 'voice' | 'settings'; 
+export type PageType = 'queue' | 'history' | 'metrics' | 'voice' | 'settings';
+
+// New types for Calendar Service
+export interface CalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  start: {
+    dateTime: string;
+    timeZone?: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone?: string;
+  };
+  attendees?: Array<{
+    email: string;
+    displayName?: string;
+    responseStatus?: 'needsAction' | 'declined' | 'tentative' | 'accepted';
+  }>;
+  status: 'confirmed' | 'tentative' | 'cancelled';
+  location?: string;
+}
+
+export interface CalendarAvailability {
+  isFree: boolean;
+  conflictingEvents: CalendarEvent[];
+  suggestedTimes?: Array<{
+    start: string;
+    end: string;
+  }>;
+}
+
+// New types for Context Engine
+export interface EmailContextQuery {
+  keywords?: string[];
+  senderFilter?: string[];
+  dateWindowHint?: string;
+  hasAttachment?: boolean;
+  maxResults?: number;
+}
+
+export interface IncomingEmailScannerOutput {
+  needsCalendarCheck: boolean;
+  calendarParameters?: {
+    dateHint?: string;
+    durationHint?: string;
+    attendees?: string[];
+  };
+  emailContextQuery: EmailContextQuery;
+  urgencyLevel: 'low' | 'medium' | 'high';
+  primaryIntent: 'scheduling' | 'information_request' | 'problem_report' | 'status_update' | 'follow_up' | 'other';
+  reasoning: string;
+}
+
+export interface FinalContextOutput {
+  contextualDraft: string;
+  suggestedActions: string[];
+  confidenceScore: number;
+  reasoning: string;
+  keyFactsUsed: string[];
+}
+
+export interface ContextualInformation {
+  calendarData?: {
+    availability: CalendarAvailability;
+    relevantEvents: CalendarEvent[];
+    summary: string;
+  };
+  emailContext: {
+    relevantEmails: Array<{
+      from: string;
+      to: string[];
+      subject: string;
+      body: string;
+      date: Date;
+      isSent: boolean;
+      snippet: string;
+    }>;
+    summary: string;
+  };
+  scannerOutput: IncomingEmailScannerOutput;
+  finalContext: FinalContextOutput;
+} 

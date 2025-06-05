@@ -1,17 +1,187 @@
 # Ezra - AI Email Assistant
 
-A Next.js application with Google OAuth integration, Gmail API, and Supabase database for intelligent email management. This is the foundation for an AI-powered email assistant.
+Ezra is an AI-powered email assistant that helps generate contextually appropriate email replies using advanced language models.
 
 ## Features
 
-- ✅ Google OAuth authentication with Gmail API access
-- ✅ Fetch and store 500 recent emails from Gmail
-- ✅ Supabase PostgreSQL database with Prisma ORM
-- ✅ User management and OAuth account storage
-- ✅ Email threading and organization
-- ✅ Clean, modern UI with Tailwind CSS
-- ✅ Session management with NextAuth.js
-- ✅ TypeScript support
+- **Intelligent Reply Generation**: Uses Google's Gemini LLM to generate professional email replies
+- **Style Analysis**: Analyzes historical email patterns to match your communication style
+- **Master Prompt System**: Customizable prompts to define your email personality and preferences
+- **Gmail Integration**: Seamlessly integrates with Gmail for email fetching and management
+- **Authentication**: Secure OAuth integration with Google
+
+## Architecture
+
+### Reply Generation Flow
+
+The system follows a sophisticated flow for generating email replies:
+
+1. **Trigger**: When an incoming email is received (e.g., from boss@xyz.company)
+2. **History Fetch**: System fetches all previous emails from the sender
+3. **Conditional Processing**:
+   - **If emails exist**: Uses Master LLM Prompt + Style Summary + Incoming Email
+   - **If no emails exist**: Uses only Master LLM Prompt + Incoming Email
+4. **Reply Generation**: Gemini LLM generates an appropriate reply with confidence scoring
+
+### Key Components
+
+#### LLM Service (`src/lib/llm.ts`)
+- **LLMService**: Main class for interacting with Gemini LLM
+- **generateStyleSummary()**: Analyzes historical emails to extract communication patterns
+- **generateReply()**: Generates contextually appropriate email replies
+- **DEFAULT_MASTER_PROMPT**: Fallback prompt when users don't have custom prompts
+
+#### Reply Generator (`src/lib/replyGenerator.ts`)
+- **ReplyGeneratorService**: Orchestrates the entire reply generation flow
+- **generateReply()**: Main entry point following the conditional flow
+- **fetchEmailHistory()**: Retrieves relevant email history from database
+- **getMasterPrompt()**: Fetches user's active master prompt
+
+#### API Endpoints
+
+##### `/api/generate-reply` (POST)
+Generates a reply for an incoming email.
+
+**Request Body:**
+```json
+{
+  "incomingEmail": {
+    "from": "sender@example.com",
+    "to": ["user@example.com"],
+    "subject": "Meeting Request",
+    "body": "Email content...",
+    "date": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "reply": "Generated email reply...",
+  "confidence": 85,
+  "reasoning": "Reply reasoning...",
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+##### `/api/master-prompt` (GET/POST/PUT)
+Manages user master prompts.
+
+- **GET**: Retrieves active master prompt
+- **POST**: Creates new master prompt
+- **PUT**: Updates existing master prompt
+
+### Database Schema
+
+#### MasterPrompt Model
+```prisma
+model MasterPrompt {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  prompt     String    @db.Text
+  version    Int       @default(1)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+```
+
+## Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+```env
+# Database
+DATABASE_URL="postgresql://username:password@hostname:port/database"
+
+# NextAuth
+NEXTAUTH_SECRET="your-nextauth-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Google OAuth (for Gmail access)
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+
+# Google AI API (for Gemini LLM)
+GOOGLE_API_KEY="your-google-ai-api-key"
+```
+
+## Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install --legacy-peer-deps
+   ```
+3. Set up environment variables
+4. Run database migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+5. Generate Prisma client:
+   ```bash
+   npx prisma generate
+   ```
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+## Dependencies
+
+### Core Dependencies
+- **Next.js 15.3.3**: React framework
+- **React 19**: UI library
+- **Prisma 6.8.2**: Database ORM
+- **NextAuth 4.24.11**: Authentication
+
+### LLM & AI Dependencies
+- **@langchain/google-genai 0.0.26**: Google Gemini integration
+- **@langchain/core 0.2.31**: LangChain core functionality
+- **@langchain/community 0.2.32**: Community integrations
+- **langchain 0.2.20**: Main LangChain library
+- **@google/generative-ai 0.21.0**: Google AI SDK
+
+### Google APIs
+- **googleapis 149.0.0**: Gmail API integration
+
+## Usage
+
+1. **Sign in** with your Google account to authorize Gmail access
+2. **Email Fetching**: System automatically fetches your sent emails for style analysis
+3. **Master Prompt**: Create or customize your master prompt to define your email personality
+4. **Reply Generation**: Use the `/api/generate-reply` endpoint to generate replies for incoming emails
+
+## File Structure
+
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── generate-reply/route.ts    # Reply generation endpoint
+│   │   └── master-prompt/route.ts     # Master prompt management
+├── lib/
+│   ├── llm.ts                         # LLM service with Gemini integration
+│   ├── replyGenerator.ts              # Main reply generation logic
+│   ├── gmail.ts                       # Gmail API integration
+│   └── auth.ts                        # Authentication configuration
+└── components/                        # UI components
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
 
 ## Setup Instructions
 
@@ -48,8 +218,8 @@ NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-secret-key-here-change-this-in-production
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID=your-google-client-id-here
-GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # Supabase Database Configuration
 DATABASE_URL=your-supabase-database-url-here
@@ -268,21 +438,3 @@ This foundation is ready for building advanced AI email assistant features:
 - **Language**: TypeScript
 - **Icons**: React Icons (Heroicons, Google icons)
 
-## Deployment
-
-For production deployment:
-
-1. Set up production Supabase project
-2. Update `NEXTAUTH_URL` and `DATABASE_URL` in environment variables
-3. Add production redirect URIs to Google OAuth settings
-4. Run database migrations: `npx prisma db push`
-5. Deploy to Vercel, Netlify, or your preferred platform
-
-## Security Notes
-
-- Never commit `.env.local` to version control
-- Use strong, unique secrets for production
-- Regularly rotate OAuth credentials
-- Database credentials are automatically managed by Supabase
-- All foreign key relationships include `onDelete: Cascade` for data integrity
-- OAuth tokens are securely stored and refreshed automatically 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { GmailService } from '@/lib/gmail'
 import { prisma } from '@/lib/prisma'
+import { MasterPromptGeneratorService } from '@/lib/masterPromptGenerator'
 
 // In-memory lock to prevent concurrent fetches for the same user
 const userFetchLocks = new Map<string, boolean>()
@@ -118,11 +119,44 @@ export async function POST(request: NextRequest) {
 
       console.log(`Auto-fetch completed. User now has ${userEmailCount} emails in ${userThreadCount} threads`)
 
+      // Auto-generate Master Prompt if eligible and doesn't have AI-generated one yet
+      let masterPromptGenerated = false;
+      try {
+        // Check if user already has an AI-generated Master Prompt
+        const existingGeneratedPrompt = await prisma.masterPrompt.findFirst({
+          where: {
+            userId: userId,
+            isGenerated: true
+          }
+        });
+
+        if (!existingGeneratedPrompt) {
+          console.log('🧠 Checking if Master Prompt can be auto-generated...');
+          const generator = new MasterPromptGeneratorService();
+          const eligibility = await generator.canGenerateMasterPrompt(userId);
+          
+          if (eligibility.canGenerate) {
+            console.log(`✨ Auto-generating Master Prompt for user ${userId}...`);
+            const result = await generator.generateAndSaveMasterPrompt(userId);
+            console.log(`🎉 Master Prompt v${result.version} auto-generated with ${result.confidence}% confidence`);
+            masterPromptGenerated = true;
+          } else {
+            console.log(`📧 User has ${eligibility.emailCount}/${eligibility.minimumRequired} emails needed for Master Prompt generation`);
+          }
+        } else {
+          console.log('✅ User already has an AI-generated Master Prompt');
+        }
+      } catch (error) {
+        console.error('❌ Error during auto Master Prompt generation:', error);
+        // Don't fail the entire auto-fetch if Master Prompt generation fails
+      }
+
       return NextResponse.json({
         message: 'Auto-fetch completed successfully',
         emailCount: emails.length,
         totalUserEmails: userEmailCount,
-        totalUserThreads: userThreadCount
+        totalUserThreads: userThreadCount,
+        masterPromptGenerated
       })
 
     } finally {

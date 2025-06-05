@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import { prisma } from "./prisma"
+import { getDefaultMasterPrompt } from "./prompts"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,7 +10,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
+          scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events",
           access_type: "offline",
           prompt: "consent"
         }
@@ -43,6 +44,9 @@ export const authOptions: NextAuthOptions = {
               }
             })
           }
+
+          // Create default master prompt if user doesn't have one
+          await createDefaultMasterPromptForUser(dbUser.id);
 
           // Store or update OAuth account information
           if (account.access_token) {
@@ -119,5 +123,31 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt"
+  }
+}
+
+/**
+ * Creates a default master prompt for a new user
+ */
+async function createDefaultMasterPromptForUser(userId: string): Promise<void> {
+  try {
+    // Check if user already has a master prompt
+    const existingPrompt = await prisma.masterPrompt.findFirst({
+      where: { userId }
+    });
+
+    if (!existingPrompt) {
+      await prisma.masterPrompt.create({
+        data: {
+          userId,
+          prompt: getDefaultMasterPrompt(),
+          version: 1,
+          isActive: true
+        }
+      });
+      console.log(`Created default master prompt for user ${userId}`);
+    }
+  } catch (error) {
+    console.error('Error creating default master prompt:', error);
   }
 } 
