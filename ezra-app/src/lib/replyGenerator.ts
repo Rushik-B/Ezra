@@ -35,6 +35,13 @@ export class ReplyGeneratorService {
   }
 
   /**
+   * Rate limiting delay to prevent API overload
+   */
+  private async rateLimitDelay(ms: number = 0): Promise<void> {
+    await new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
    * Enhanced main entry point - now with two-stage generation
    */
   async generateReply(params: ReplyGenerationParams): Promise<EnhancedReplyResult> {
@@ -65,12 +72,27 @@ export class ReplyGeneratorService {
         historicalEmails: emailHistory
       };
 
-      // Generate style context if we have sufficient history
+      // Generate style context using the compression approach
       let styleContext = '';
       if (emailHistory.length >= 3) {
-        styleContext = await this.generateEnhancedStyleSummary(emailHistory, masterPrompt);
-        console.log(`🎯 Generated enhanced style context (length: ${styleContext.length})`);
+        // Step 1: Generate detailed style analysis
+        console.log('🔍 Generating detailed style analysis...');
+        const detailedStyleAnalysis = await this.generateEnhancedStyleSummary(emailHistory, masterPrompt);
+        console.log(`📊 Generated detailed style analysis (length: ${detailedStyleAnalysis.length})`);
+        
+        // Step 2: Compress style analysis into efficient guide
+        console.log('✂️ Compressing style analysis...');
+        // Small delay between LLM calls to prevent rate limiting
+        await this.rateLimitDelay(0);
+        
+        styleContext = await this.llmService.invokeStyleCompressor(
+          masterPrompt,
+          detailedStyleAnalysis,
+          emailHistory
+        );
+        console.log(`🎯 Generated compressed style guide (length: ${styleContext.length})`);
       } else {
+        // For limited history, generate basic style context directly
         styleContext = emailHistory.length > 0
           ? await this.llmService.generateStyleSummary(emailHistory)
           : "Limited communication history with this sender.";
@@ -80,6 +102,10 @@ export class ReplyGeneratorService {
       // Generate final reply using contextual draft + style
       const contextualDraft = contextualInfo.finalContext.contextualDraft;
       console.log(`🔧 Using contextual draft (length: ${contextualDraft.length}) for style refinement`);
+
+      // Add delay to prevent rate limiting on free tier
+      console.log('⏱️ Adding 0 second delay to prevent rate limiting...');
+      await this.rateLimitDelay(0);
 
       const result = await this.llmService.generateReply(
         masterPrompt,
@@ -101,6 +127,17 @@ export class ReplyGeneratorService {
 
       console.log(`✨ Enhanced reply generated with style confidence: ${result.confidence}%, context confidence: ${contextualInfo.finalContext.confidenceScore}%`);
       console.log(`📊 Context summary: Calendar=${!!contextualInfo.calendarData}, Emails=${contextualInfo.emailContext.relevantEmails.length}, Actions=${contextualInfo.finalContext.suggestedActions.length}`);
+
+      // Log comprehensive token usage summary
+      const tokenSummary = LLMService.getTokenSummary();
+      console.log(`\n🔢 =================================`);
+      console.log(`🔢 TOTAL TOKEN USAGE SUMMARY`);
+      console.log(`🔢 =================================`);
+      console.log(`🔢 Total Input Tokens:  ${tokenSummary.totalPromptTokens.toLocaleString()}`);
+      console.log(`🔢 Total Output Tokens: ${tokenSummary.totalResponseTokens.toLocaleString()}`);
+      console.log(`🔢 Total Tokens Used:   ${tokenSummary.totalTokens.toLocaleString()}`);
+      console.log(`🔢 Number of LLM Calls: ${tokenSummary.calls.length}`);
+      console.log(`🔢 =================================\n`);
 
       return enhancedResult;
 
@@ -336,8 +373,6 @@ When generating replies, give HIGHEST PRIORITY to any instructions marked with "
       
       if (emails.length > 0) {
         console.log(`📅 Date range: ${emails[emails.length - 1].createdAt.toISOString()} to ${emails[0].createdAt.toISOString()}`);
-        console.log(`🔍 Sample email IDs: ${emails.slice(0, 3).map(e => e.id).join(', ')}`);
-        console.log(`📝 Sample subjects: ${emails.slice(0, 3).map(e => e.subject).join(' | ')}`);
       } else {
         console.log(`❓ Debug: Let's check what emails we have with this sender...`);
         

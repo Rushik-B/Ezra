@@ -21,14 +21,38 @@ export const EzraApp: React.FC = () => {
   const [isAutoFetching, setIsAutoFetching] = useState(false);
   const [autoFetchStatus, setAutoFetchStatus] = useState<string>('');
   const [autoFetchCompleted, setAutoFetchCompleted] = useState(false);
+  const [initializationStarted, setInitializationStarted] = useState(false);
 
-  // Auto-fetch emails when user first loads the app
+  // Auto-fetch emails and ensure master prompt when user first loads the app
   useEffect(() => {
     const autoFetchEmails = async () => {
-      if (!session?.userId || autoFetchCompleted || isAutoFetching) return;
+      if (!session?.userId || autoFetchCompleted || isAutoFetching || initializationStarted) return;
+      
+      setInitializationStarted(true);
 
       try {
         setIsAutoFetching(true);
+        setAutoFetchStatus('Initializing your Ezra experience...');
+        
+        // First, ensure user has a master prompt
+        try {
+          const masterPromptResponse = await fetch('/api/master-prompt/ensure', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (masterPromptResponse.ok) {
+            const masterPromptData = await masterPromptResponse.json();
+            if (!masterPromptData.hasPrompt) {
+              console.log('⚠️ User needs more emails for master prompt generation');
+            }
+          }
+        } catch (error) {
+          console.warn('Master prompt check failed, continuing with email fetch:', error);
+        }
+        
         setAutoFetchStatus('Checking if emails need to be fetched...');
         
         const response = await fetch('/api/auto-fetch-emails', {
@@ -43,7 +67,6 @@ export const EzraApp: React.FC = () => {
         if (data.skipped || data.inProgress) {
           setAutoFetchStatus('');
           setAutoFetchCompleted(true);
-          console.log('Auto-fetch skipped or already in progress:', data);
         } else if (response.ok) {
           let statusMessage = `Auto-fetch completed! Fetched ${data.emailCount} emails.`;
           
@@ -53,7 +76,6 @@ export const EzraApp: React.FC = () => {
           
           setAutoFetchStatus(statusMessage);
           setAutoFetchCompleted(true);
-          console.log('Auto-fetch completed:', data);
           
           // Clear status after longer time if Master Prompt was generated
           const clearDelay = data.masterPromptGenerated ? 5000 : 3000;
@@ -84,15 +106,15 @@ export const EzraApp: React.FC = () => {
       }
     };
 
-    // Only run auto-fetch once when session is available and not completed
-    if (session?.userId && !autoFetchCompleted && !isAutoFetching) {
+    // Only run initialization once when session is available and not completed
+    if (session?.userId && !autoFetchCompleted && !isAutoFetching && !initializationStarted) {
+      console.log('🚀 Starting Ezra initialization for user:', session.userId);
       autoFetchEmails();
     }
-  }, [session?.userId, autoFetchCompleted, isAutoFetching]);
+  }, [session?.userId, autoFetchCompleted, isAutoFetching, initializationStarted]);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
-    console.log("Searching for:", term);
   };
 
   const renderPage = () => {

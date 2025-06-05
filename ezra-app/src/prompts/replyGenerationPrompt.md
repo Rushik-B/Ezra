@@ -16,7 +16,7 @@ You will receive inputs and must weave them together intelligently.
 
 **{masterPrompt}**: The user's AI-generated Master Prompt containing their fundamental communication style, derived from analyzing their entire email history.
 
-**{styleContext}**: Detailed style analysis of the specific sender, covering their tone, structure, vocabulary, and communication patterns.
+**{styleContext}**: Compressed style guide containing the user's core communication patterns, concrete email examples, and sender-specific adaptations.
 
 **{contextualDraftInput}**: Synthesized reply instructions that have been intelligently analyzed from comprehensive contextual information. This contains strategic guidance on what to say, specific details to include, and recommended actions - all ready for you to format in the user's style.
 
@@ -84,11 +84,12 @@ You will receive inputs and must weave them together intelligently.
   - Natural vocabulary and sentence structure
   - Typical information presentation style
 
-2.3. **Identify Sender Adaptation Needs (Style Context)**
-- From `{styleContext}`, adapt user's style to match sender preferences:
-  - Their preferred formality level vs. user's default
-  - Their greeting/closing styles vs. user's patterns
-  - Their sentence length and structure preferences
+2.3. **Apply Compressed Style Guide (Style Context)**
+- From `{styleContext}`, extract and apply:
+  - Core style patterns that define the user's voice
+  - Concrete examples showing the user's actual communication style
+  - Sender-specific adaptations and relationship considerations
+  - Critical notes about must-follow or must-avoid patterns
 
 ---
 

@@ -39,6 +39,8 @@ export async function GET() {
       prompt: masterPrompt.prompt,
       version: masterPrompt.version,
       isDefault: false,
+      isGenerated: masterPrompt.isGenerated,
+      metadata: masterPrompt.metadata,
       createdAt: masterPrompt.createdAt,
       updatedAt: masterPrompt.updatedAt
     });
@@ -132,6 +134,7 @@ export async function PUT(request: NextRequest) {
 
     // Handle distilled prompt edits differently
     if (isDistilledEdit && promptId) {
+      console.log(`🌀 Processing distilled edit for promptId: ${promptId}, userId: ${session.userId}`);
       const generator = new MasterPromptGeneratorService();
       
       try {
@@ -141,6 +144,7 @@ export async function PUT(request: NextRequest) {
           prompt.trim()
         );
 
+        console.log(`✅ Master Prompt updated from distilled edits to v${result.version}`);
         return NextResponse.json({
           success: true,
           id: result.id,
@@ -149,7 +153,7 @@ export async function PUT(request: NextRequest) {
           isDistilledUpdate: true
         });
       } catch (error) {
-        console.error('Error updating from distilled edits:', error);
+        console.error('❌ Error updating from distilled edits:', error);
         return NextResponse.json({ 
           error: 'Failed to update Master Prompt from distilled edits',
           details: error instanceof Error ? error.message : 'Unknown error'

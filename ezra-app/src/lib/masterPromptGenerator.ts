@@ -24,14 +24,14 @@ export class MasterPromptGeneratorService {
     try {
       console.log(`Starting Master Prompt generation for user: ${userId}`);
 
-      // Fetch user's sent emails
-      const sentEmails = await this.fetchUserSentEmails(userId);
+      // Fetch user's sent emails - use many more for better analysis
+      const sentEmails = await this.fetchUserSentEmails(userId, 2000); // Increased to 2000 emails
 
       if (sentEmails.length === 0) {
         throw new Error('No sent emails found for Master Prompt generation');
       }
 
-      console.log(`Found ${sentEmails.length} sent emails for analysis`);
+      console.log(`📧 Analyzing ${sentEmails.length} sent emails for Master Prompt generation`);
 
       // Format emails for analysis
       const emailCorpus = this.formatEmailsForAnalysis(sentEmails);
@@ -47,7 +47,7 @@ export class MasterPromptGeneratorService {
       // Calculate confidence based on email count and content quality
       const confidence = this.calculateConfidence(sentEmails.length, emailCorpus);
 
-      console.log(`Master Prompt generated with confidence: ${confidence}%`);
+      console.log(`✅ Master Prompt generated (confidence: ${confidence}%)`)
 
       return {
         fullMasterPrompt,
@@ -103,7 +103,7 @@ export class MasterPromptGeneratorService {
         }
       });
 
-      console.log(`Saved generated Master Prompt v${nextVersion} for user ${userId}`);
+      console.log(`✅ Master Prompt v${nextVersion} saved for user ${userId}`);
 
       return {
         id: savedPrompt.id,
@@ -182,7 +182,7 @@ export class MasterPromptGeneratorService {
         }
       });
 
-      console.log(`Updated Master Prompt to v${nextVersion} with user edits`);
+      console.log(`✅ Master Prompt updated to v${nextVersion} with user edits`);
 
       return {
         id: updatedPrompt.id,
@@ -216,9 +216,49 @@ export class MasterPromptGeneratorService {
   }
 
   /**
-   * Fetch user's sent emails for analysis
+   * Check if user has a master prompt, if not generate one automatically
    */
-  private async fetchUserSentEmails(userId: string, limit: number = 200) {
+  async ensureUserHasMasterPrompt(userId: string): Promise<boolean> {
+    try {
+      // Check if user already has an active master prompt
+      const existingPrompt = await prisma.masterPrompt.findFirst({
+        where: {
+          userId,
+          isActive: true
+        }
+      });
+
+      if (existingPrompt) {
+        console.log(`✅ User ${userId} already has master prompt v${existingPrompt.version}`);
+        return true;
+      }
+
+      // Check if user has enough emails
+      const canGenerate = await this.canGenerateMasterPrompt(userId);
+      
+      if (!canGenerate.canGenerate) {
+        console.log(`⚠️ User ${userId} needs ${canGenerate.minimumRequired - canGenerate.emailCount} more emails for master prompt generation`);
+        return false;
+      }
+
+      // Generate master prompt automatically
+      console.log(`🚀 Auto-generating master prompt for user ${userId} with ${canGenerate.emailCount} emails`);
+      
+      await this.generateAndSaveMasterPrompt(userId);
+      
+      console.log(`✅ Successfully auto-generated master prompt for user ${userId}`);
+      return true;
+
+    } catch (error) {
+      console.error(`❌ Error ensuring master prompt for user ${userId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Fetch user's sent emails for analysis - using large limit for 1M context window
+   */
+  private async fetchUserSentEmails(userId: string, limit: number = 1000) {
     const emails = await prisma.email.findMany({
       where: {
         thread: { userId },

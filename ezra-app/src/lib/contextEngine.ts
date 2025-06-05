@@ -175,7 +175,9 @@ export class ContextEngineService {
           const startTime = new Date(parsedDate.getTime() - (7 * 24 * 60 * 60 * 1000)); // 1 week before
           const endTime = new Date(parsedDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 1 week after
           
+          console.log(`📅 Fetching calendar events from ${startTime.toISOString()} to ${endTime.toISOString()}`);
           relevantEvents = await calendarService.getEvents(startTime, endTime);
+          console.log(`📅 Found ${relevantEvents.length} calendar events`);
           
           // Check availability for the specific time if we can determine it
           if (calendarParams.durationHint) {
@@ -183,11 +185,16 @@ export class ContextEngineService {
             const endDateTime = new Date(parsedDate.getTime() + duration);
             availability = await calendarService.checkAvailability(parsedDate, endDateTime);
           }
+        } else {
+          console.log('⚠️ Could not parse date hint, getting general calendar context');
+          relevantEvents = await calendarService.getWeekEvents();
+          console.log(`📅 Found ${relevantEvents.length} calendar events`);
         }
       } else {
-        // Get general context (this week's events)
+        // Get general context (this week's events) - always do this when calendar is needed
         console.log('📅 Getting general calendar context (this week)');
         relevantEvents = await calendarService.getWeekEvents();
+        console.log(`📅 Found ${relevantEvents.length} calendar events`);
       }
 
       const summary = calendarService.generateCalendarSummary(relevantEvents, availability);

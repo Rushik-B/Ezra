@@ -32,13 +32,15 @@
 │   │   │   ├── generate-reply
 │   │   │   │   └── route.ts
 │   │   │   ├── master-prompt
-│   │   │   │   ├── route.ts
 │   │   │   │   ├── activate
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── ensure
 │   │   │   │   │   └── route.ts
 │   │   │   │   ├── generate
 │   │   │   │   │   └── route.ts
-│   │   │   │   └── history
-│   │   │   │       └── route.ts
+│   │   │   │   ├── history
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── route.ts
 │   │   │   └── test-reply-generation
 │   │   │       └── route.ts
 │   │   ├── auth
@@ -81,6 +83,7 @@
 │   │   ├── replyGenerator.ts
 │   │   └── utils.ts
 │   ├── prompts
+│   │   ├── contextSynthesizerPrompt.md
 │   │   ├── defaultMasterPrompt.md
 │   │   ├── distilledMasterPromptGenerator.md
 │   │   ├── finalToolContextGeneratorPrompt.md
@@ -88,7 +91,8 @@
 │   │   ├── masterPromptUpdaterFromDistilled.md
 │   │   ├── masterStyleDerivationPrompt.md
 │   │   ├── replyGenerationPrompt.md
-│   │   └── styleAnalysisPrompt.md
+│   │   ├── styleAnalysisPrompt.md
+│   │   └── styleCompressorPrompt.md
 │   └── types
 │       ├── index.ts
 │       └── next-auth.d.ts
