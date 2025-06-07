@@ -91,6 +91,7 @@ export class ReplyGeneratorService {
           emailHistory
         );
         console.log(`🎯 Generated compressed style guide (length: ${styleContext.length})`);
+        console.log('This is the compressed style context!!!!: ', styleContext);
       } else {
         // For limited history, generate basic style context directly
         styleContext = emailHistory.length > 0
@@ -102,6 +103,7 @@ export class ReplyGeneratorService {
       // Generate final reply using contextual draft + style
       const contextualDraft = contextualInfo.finalContext.contextualDraft;
       console.log(`🔧 Using contextual draft (length: ${contextualDraft.length}) for style refinement`);
+      console.log('This is the contextual draft!!!!: ', contextualDraft);
 
       // Add delay to prevent rate limiting on free tier
       console.log('⏱️ Adding 0 second delay to prevent rate limiting...');

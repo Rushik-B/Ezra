@@ -28,7 +28,7 @@ export const EzraApp: React.FC = () => {
 
       try {
         setIsAutoFetching(true);
-        setAutoFetchStatus('Initializing your Ezra experience...');
+        setAutoFetchStatus('Initializing your AI assistant...');
         
         // First, ensure user has a master prompt
         try {
@@ -49,7 +49,7 @@ export const EzraApp: React.FC = () => {
           console.warn('Master prompt check failed, continuing with email fetch:', error);
         }
         
-        setAutoFetchStatus('Checking if emails need to be fetched...');
+        setAutoFetchStatus('Syncing with your email...');
         
         const response = await fetch('/api/auto-fetch-emails', {
           method: 'POST',
@@ -64,10 +64,10 @@ export const EzraApp: React.FC = () => {
           setAutoFetchStatus('');
           setAutoFetchCompleted(true);
         } else if (response.ok) {
-          let statusMessage = `Auto-fetch completed! Fetched ${data.emailCount} emails.`;
+          let statusMessage = `Connected! Analyzed ${data.emailCount} emails.`;
           
           if (data.masterPromptGenerated) {
-            statusMessage += ' 🧠 AI Master Prompt generated!';
+            statusMessage += ' AI brain calibrated successfully.';
           }
           
           setAutoFetchStatus(statusMessage);
@@ -80,7 +80,7 @@ export const EzraApp: React.FC = () => {
           }, clearDelay);
         } else {
           console.error('Auto-fetch failed:', data);
-          setAutoFetchStatus('Auto-fetch failed. You can manually fetch emails later.');
+          setAutoFetchStatus('Connection failed. You can manually sync later.');
           setAutoFetchCompleted(true);
           
           // Clear error status after 5 seconds
@@ -90,7 +90,7 @@ export const EzraApp: React.FC = () => {
         }
       } catch (error) {
         console.error('Error during auto-fetch:', error);
-        setAutoFetchStatus('Auto-fetch failed. You can manually fetch emails later.');
+        setAutoFetchStatus('Connection failed. You can manually sync later.');
         setAutoFetchCompleted(true);
         
         // Clear error status after 5 seconds
@@ -132,33 +132,38 @@ export const EzraApp: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans flex flex-col">
-      <TopBar />
+    <div className="min-h-screen bg-slate-950 text-white font-inter">
+      <TopBar onLogoClick={() => setActivePage('queue')} />
       
       {/* Auto-fetch status banner */}
       {(isAutoFetching || autoFetchStatus) && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 px-4 py-2 mt-16">
-          <div className="flex items-center justify-center">
+        <div className="bg-blue-500/10 backdrop-blur border-b border-blue-500/20 px-6 py-3 mt-16">
+          <div className="flex items-center justify-center max-w-7xl mx-auto">
             {isAutoFetching && (
-              <div className="flex items-center space-x-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="text-sm text-blue-700 dark:text-blue-300">
-                  {autoFetchStatus || 'Fetching your emails...'}
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
+                </div>
+                <span className="text-sm font-medium text-blue-200">
+                  {autoFetchStatus || 'Connecting to your email...'}
                 </span>
               </div>
             )}
             {!isAutoFetching && autoFetchStatus && (
-              <span className="text-sm text-blue-700 dark:text-blue-300">
-                {autoFetchStatus}
-              </span>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                <span className="text-sm font-medium text-emerald-200">
+                  {autoFetchStatus}
+                </span>
+              </div>
             )}
           </div>
         </div>
       )}
       
-      <div className="flex flex-1 pt-16">
+      <div className="flex pt-16">
         <LeftNav activePage={activePage} setActivePage={setActivePage} />
-        <main className="flex-1 ml-64 p-0 overflow-y-auto bg-gray-100 dark:bg-gray-900/70">
+        <main className="flex-1 ml-72 bg-slate-950 min-h-screen">
           {renderPage()}
         </main>
       </div>

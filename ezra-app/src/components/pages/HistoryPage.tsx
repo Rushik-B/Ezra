@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, History as HistoryIcon, RotateCcw, X, ShieldCheck, Trash2, Edit3, Clock, Settings, AlertTriangle, Inbox } from 'lucide-react';
+import { Search, Clock, RotateCcw, X, ShieldCheck, Trash2, Edit3, Settings, AlertTriangle, Mail, Filter, ArrowRight } from 'lucide-react';
 
 interface HistoryItem {
   id: string;
@@ -71,17 +71,17 @@ export const HistoryPage: React.FC = () => {
   const getActionIcon = (actionType: string) => {
     switch (actionType) {
       case 'EMAIL_SENT':
-        return <ShieldCheck className="text-emerald-500" size={16} />;
+        return <ShieldCheck className="text-emerald-400" size={16} />;
       case 'EMAIL_EDITED':
-        return <Edit3 className="text-blue-500" size={16} />;
+        return <Edit3 className="text-blue-400" size={16} />;
       case 'EMAIL_REJECTED':
-        return <Trash2 className="text-red-500" size={16} />;
+        return <Trash2 className="text-red-400" size={16} />;
       case 'EMAIL_SNOOZED':
-        return <Clock className="text-yellow-500" size={16} />;
+        return <Clock className="text-yellow-400" size={16} />;
       case 'MASTER_PROMPT_UPDATED':
-        return <Settings className="text-purple-500" size={16} />;
+        return <Settings className="text-purple-400" size={16} />;
       default:
-        return <AlertTriangle className="text-gray-500" size={16} />;
+        return <AlertTriangle className="text-slate-400" size={16} />;
     }
   };
 
@@ -112,62 +112,62 @@ export const HistoryPage: React.FC = () => {
     const actionDetails = JSON.parse(item.fullContext || '{}');
     
     return (
-      <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-xl font-semibold text-white flex items-center">
               {getActionIcon(item.actionType)}
-              <span className="ml-2">Action Details - {item.actionType.replace('_', ' ')}</span>
+              <span className="ml-3">Action Details - {item.actionType.replace('_', ' ')}</span>
             </h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
+            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
               <X size={24} />
             </button>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Original Email */}
             {actionDetails.emailFrom && (
-              <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <h4 className="text-lg font-medium text-blue-800 dark:text-blue-200 mb-3 flex items-center">
-                    <Inbox size={18} className="mr-2" />
+              <div className="space-y-6">
+                <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-6">
+                  <h4 className="text-lg font-medium text-blue-200 mb-4 flex items-center">
+                    <Mail size={18} className="mr-3" />
                     Original Email
                   </h4>
-                  <div className="space-y-2 text-sm">
-                    <div><strong>From:</strong> {actionDetails.emailFrom}</div>
-                    <div><strong>Subject:</strong> {actionDetails.emailSubject}</div>
-                    <div><strong>Action:</strong> {item.actionSummary}</div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex">
+                      <span className="text-slate-400 w-20">From:</span>
+                      <span className="text-white">{actionDetails.emailFrom}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="text-slate-400 w-20">Subject:</span>
+                      <span className="text-white">{actionDetails.emailSubject}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="text-slate-400 w-20">Action:</span>
+                      <span className="text-slate-300">{item.actionSummary}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* AI Response / Action Details */}
-            <div className="space-y-4">
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4">
-                <h4 className="text-lg font-medium text-emerald-800 dark:text-emerald-200 mb-3 flex items-center">
+            <div className="space-y-6">
+              <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-6">
+                <h4 className="text-lg font-medium text-emerald-200 mb-4 flex items-center">
                   {getActionIcon(item.actionType)}
-                  <span className="ml-2">Action Result</span>
-                  {item.confidence && (
-                    <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                      item.confidence >= 80 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
-                      item.confidence >= 60 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
-                      'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                    }`}>
-                      {item.confidence}% confidence
-                    </span>
-                  )}
+                  <span className="ml-3">Action Result</span>
                 </h4>
                 {actionDetails.finalContent && (
-                  <div className="mt-4 p-3 bg-white dark:bg-gray-800 rounded border max-h-64 overflow-y-auto">
-                    <div className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                  <div className="mt-6 p-4 bg-slate-950/50 rounded-lg border border-slate-700/30 max-h-64 overflow-y-auto">
+                    <div className="whitespace-pre-wrap text-sm text-slate-200 leading-relaxed">
                       {actionDetails.finalContent}
                     </div>
                   </div>
                 )}
                 {actionDetails.rejectionReason && (
-                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded border">
-                    <p className="text-sm text-red-700 dark:text-red-300">
+                  <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <p className="text-sm text-red-300">
                       <strong>Rejection Reason:</strong> {actionDetails.rejectionReason}
                     </p>
                   </div>
@@ -177,18 +177,18 @@ export const HistoryPage: React.FC = () => {
           </div>
 
           {/* Full Details */}
-          <div className="mt-6 bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Full Action Context:</h4>
-            <pre className="text-xs text-gray-600 dark:text-gray-400 overflow-x-auto whitespace-pre-wrap">
+          <div className="mt-8 bg-slate-900/30 border border-slate-700/30 rounded-xl p-6">
+            <h4 className="text-sm font-medium text-slate-300 mb-4">Full Action Context:</h4>
+            <pre className="text-xs text-slate-400 overflow-x-auto whitespace-pre-wrap font-mono">
               {item.fullContext}
             </pre>
           </div>
 
           {/* Close Button */}
-          <div className="mt-6 flex justify-end">
+          <div className="mt-8 flex justify-end">
             <button 
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-md"
+              className="px-6 py-3 text-sm font-medium text-white bg-emerald-500/80 hover:bg-emerald-500 rounded-xl transition-colors"
             >
               Close
             </button>
@@ -198,167 +198,146 @@ export const HistoryPage: React.FC = () => {
     );
   };
 
-  const HistoryItemModal: React.FC<{ item: HistoryItem; onClose: () => void }> = ({ item, onClose }) => (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-            {getActionIcon(item.actionType)}
-            <span className="ml-2">Action Details</span>
-          </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">
-            <X size={24} />
-          </button>
-        </div>
-        <div className="space-y-4 text-sm">
-          <div>
-            <strong className="text-gray-600 dark:text-gray-300">Action Type:</strong> 
-            <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">{item.actionType}</span>
-          </div>
-          <div>
-            <strong className="text-gray-600 dark:text-gray-300">Summary:</strong> 
-            <p className="mt-1">{item.actionSummary}</p>
-          </div>
-          <div>
-            <strong className="text-gray-600 dark:text-gray-300">Timestamp:</strong> 
-            <p className="mt-1">{new Date(item.timestamp).toLocaleString()}</p>
-          </div>
-          {item.confidence && (
-            <div>
-              <strong className="text-gray-600 dark:text-gray-300">AI Confidence:</strong> 
-              <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">
-                {item.confidence}%
-              </span>
-            </div>
-          )}
-          <div>
-            <strong className="text-gray-600 dark:text-gray-300">Full Context:</strong>
-            <pre className="mt-1 p-3 bg-gray-50 dark:bg-gray-900 rounded text-xs overflow-x-auto whitespace-pre-wrap">
-              {item.fullContext}
-            </pre>
-          </div>
-          <div>
-            <strong className="text-gray-600 dark:text-gray-300">Additional Details:</strong>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{item.feedback}</p>
-          </div>
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-md shadow-sm">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Action History</h2>
-      
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-3 md:space-y-0 md:space-x-4">
-        <div className="flex items-center space-x-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
-          {['1', '7', '30'].map(days => (
-            <button
-              key={days}
-              onClick={() => setFilter(days)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150
-                ${filter === days 
-                  ? 'bg-emerald-500 text-white shadow' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-            >
-              {days === '1' ? 'Today' : days === '7' ? 'This Week' : 'This Month'}
-            </button>
-          ))}
-        </div>
-        
-        <div className="flex items-center space-x-2 w-full md:w-auto">
-          <select 
-            value={actionTypeFilter} 
-            onChange={(e) => setActionTypeFilter(e.target.value)}
-            className="text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 focus:ring-emerald-500 focus:border-emerald-500 text-gray-700 dark:text-gray-200"
-          >
-            <option value="all">All Action Types</option>
-            <option value="sent">Sent/Replied</option>
-            <option value="rejected">Rejected</option>
-            <option value="snoozed">Snoozed</option>
-          </select>
-          <div className="relative w-full md:w-52">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-            <input 
-              type="text" 
-              placeholder="Filter history..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-emerald-500 focus:border-emerald-500 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
-            />
+    <div className="min-h-screen bg-slate-950 p-8">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+          <div className="flex-1 mb-6 lg:mb-0">
+            <h1 className="text-3xl font-semibold text-white mb-2">
+              Activity History
+            </h1>
+            <p className="text-slate-400 max-w-2xl leading-relaxed">
+              Track all AI actions and decisions. Review past performance and analyze patterns.
+            </p>
+          </div>
+          
+          <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
+            {/* Time Range Filter */}
+            <div className="flex items-center space-x-2 bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl p-1.5">
+              {['1', '7', '30'].map(days => (
+                <button
+                  key={days}
+                  onClick={() => setFilter(days)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    filter === days 
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  {days === '1' ? 'Today' : days === '7' ? '7 days' : '30 days'}
+                </button>
+              ))}
+            </div>
+            
+            {/* Action Type Filter and Search */}
+            <div className="flex space-x-3">
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <select 
+                  value={actionTypeFilter} 
+                  onChange={(e) => setActionTypeFilter(e.target.value)}
+                  className="pl-10 pr-4 py-2.5 text-sm bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white appearance-none cursor-pointer"
+                >
+                  <option value="all">All Actions</option>
+                  <option value="sent">Sent/Replied</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="snoozed">Snoozed</option>
+                </select>
+              </div>
+              
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search history..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2.5 text-sm bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-slate-400 w-64"
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        {/* History List */}
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
-            <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">Loading action history...</p>
+          <div className="text-center py-16">
+            <div className="relative w-12 h-12 mx-auto mb-6">
+              <div className="w-12 h-12 border-2 border-slate-700 border-t-blue-400 rounded-full animate-spin"></div>
+            </div>
+            <p className="text-lg font-medium text-slate-300">Loading activity history...</p>
+            <p className="text-sm text-slate-500 mt-2">Retrieving past actions</p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredHistory.length > 0 ? filteredHistory.map(item => (
-              <li key={item.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-l-4 hover:border-l-blue-500 transition-all duration-150 cursor-pointer" onClick={() => setShowHistoryViewer(item)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <span className="flex-shrink-0">{getActionIcon(item.actionType)}</span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 dark:text-white">{item.actionSummary}</p>
-                                             <div className="flex items-center space-x-2 mt-1">
-                         <p className="text-xs text-gray-500 dark:text-gray-400">{formatTimestamp(item.timestamp)}</p>
-                         {item.confidence && (
-                           <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                             {item.confidence}% confidence
-                           </span>
-                         )}
-                         <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                           Click to view details →
-                         </span>
-                       </div>
+          <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl overflow-hidden">
+            {filteredHistory.length > 0 ? (
+              <div className="divide-y divide-slate-700/50">
+                {filteredHistory.map(item => (
+                  <div 
+                    key={item.id} 
+                    className="group p-6 hover:bg-slate-700/30 transition-all duration-200 cursor-pointer"
+                    onClick={() => setShowHistoryViewer(item)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center justify-center w-10 h-10 bg-slate-700/50 rounded-xl group-hover:bg-slate-600/50 transition-colors">
+                          {getActionIcon(item.actionType)}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-white group-hover:text-blue-200 transition-colors">
+                            {item.actionSummary}
+                          </p>
+                          <div className="flex items-center space-x-4 mt-2">
+                            <p className="text-sm text-slate-400">
+                              {formatTimestamp(item.timestamp)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-3">
+                        <div className="text-sm text-blue-400 font-medium flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span>View details</span>
+                          <ArrowRight size={12} className="ml-2" />
+                        </div>
+                        {item.undoable && ['EMAIL_SENT', 'EMAIL_EDITED'].includes(item.actionType) && (
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setSelectedHistoryItem(item); 
+                            }} 
+                            className="px-3 py-1.5 text-xs font-medium text-blue-300 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg flex items-center transition-colors"
+                          >
+                            <RotateCcw size={12} className="mr-1.5" />
+                            Undo
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                                     {item.undoable && ['EMAIL_SENT', 'EMAIL_EDITED'].includes(item.actionType) && (
-                     <button 
-                       onClick={(e) => { e.stopPropagation(); setSelectedHistoryItem(item); }} 
-                       className="text-xs text-blue-600 dark:text-blue-400 hover:underline p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900 flex items-center"
-                     >
-                       <RotateCcw size={14} className="mr-1" />
-                       Undo Options
-                     </button>
-                   )}
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <div className="bg-slate-900/50 rounded-2xl p-12 max-w-md mx-auto">
+                  <Clock size={48} className="mx-auto text-slate-500 mb-6" />
+                  <h3 className="text-lg font-medium text-slate-300 mb-2">No History Found</h3>
+                  <p className="text-sm text-slate-500">
+                    {searchTerm ? 'Try adjusting your search term.' : 'No actions recorded in the selected time period.'}
+                  </p>
                 </div>
-              </li>
-            )) : (
-              <li className="p-8 text-center">
-                <HistoryIcon size={36} className="mx-auto text-gray-400 dark:text-gray-500" />
-                <p className="mt-3 text-md font-medium text-gray-600 dark:text-gray-300">No History Found</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {searchTerm ? 'Try adjusting your search term.' : 'No actions recorded in the selected time period.'}
-                </p>
-              </li>
+              </div>
             )}
-          </ul>
+          </div>
         )}
       </div>
       
+      {/* Modals */}
       {showHistoryViewer && (
         <HistoryViewer 
           item={showHistoryViewer} 
           onClose={() => setShowHistoryViewer(null)} 
-        />
-      )}
-
-      {selectedHistoryItem && (
-        <HistoryItemModal 
-          item={selectedHistoryItem} 
-          onClose={() => setSelectedHistoryItem(null)} 
         />
       )}
     </div>
