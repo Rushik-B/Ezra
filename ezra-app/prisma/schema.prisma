@@ -20,6 +20,7 @@ model User {
   feedbacks      Feedback[]
   autonomyRules  AutonomyRule[]
   masterPrompts  MasterPrompt[]
+  actionHistory  ActionHistory[]
 }
 
 model OAuthAccount {
@@ -50,22 +51,23 @@ model Thread {
 }
 
 model Email {
-  id           String     @id @default(uuid())
-  thread       Thread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  threadId     String
-  messageId    String     @unique
-  from         String
-  to           String[]
-  cc           String[]   @default([])
-  subject      String
-  body         String     // raw HTML/text
-  snippet      String?
-  isSent       Boolean    @default(false)
-  isDraft      Boolean    @default(false)
-  embedding    Embedding?
-  feedback     Feedback?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id             String         @id @default(uuid())
+  thread         Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId       String
+  messageId      String         @unique
+  from           String
+  to             String[]
+  cc             String[]       @default([])
+  subject        String
+  body           String         @db.Text // raw HTML/text
+  snippet        String?
+  isSent         Boolean        @default(false)
+  isDraft        Boolean        @default(false)
+  embedding      Embedding?
+  feedback       Feedback?
+  generatedReply GeneratedReply?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model Embedding {
@@ -74,6 +76,16 @@ model Embedding {
   emailId    String    @unique
   vector     Json      // store your embedding array here
   createdAt  DateTime  @default(now())
+}
+
+model GeneratedReply {
+  id              String   @id @default(cuid())
+  email           Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  emailId         String   @unique
+  draft           String   @db.Text
+  confidenceScore Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Feedback {
@@ -113,6 +125,7 @@ model UserSettings {
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String    @unique
   autonomyLevel  Int       @default(0)   // 0–100 "autonomy dial"
+  gmailHistoryId String?   // Last history ID from Gmail push notifications
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
@@ -128,4 +141,33 @@ model MasterPrompt {
   metadata   Json?     // Store generation details like emailsAnalyzed, confidence, etc.
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+// ActionHistory table to track all user actions and AI decisions for the History page
+model ActionHistory {
+  id              String               @id @default(cuid())
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  actionType      ActionHistoryType    // Type of action performed
+  actionSummary   String               // Brief description of the action
+  actionDetails   Json?                // Full details of the action (email content, context, etc.)
+  emailReference  String?              // Reference to related email if applicable
+  confidence      Float?               // AI confidence if applicable
+  undoable        Boolean              @default(false) // Whether this action can be undone
+  promptState     String?              // Master prompt version/state at time of action
+  metadata        Json?                // Additional metadata (sender, subject, etc.)
+  createdAt       DateTime             @default(now())
+  
+  @@index([userId, createdAt]) // Index for efficient querying by user and date
+}
+
+enum ActionHistoryType {
+  EMAIL_SENT          // Email was sent (auto or manually approved)
+  EMAIL_REJECTED      // AI draft was rejected
+  EMAIL_EDITED        // AI draft was edited before sending
+  EMAIL_SNOOZED       // Email action was snoozed
+  EMAIL_ARCHIVED      // Email was archived
+  MASTER_PROMPT_UPDATED // Master prompt was modified
+  AUTONOMY_RULE_ADDED   // New autonomy rule was created
+  SETTINGS_CHANGED      // User settings were modified
 } 

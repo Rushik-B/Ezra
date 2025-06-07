@@ -6,15 +6,28 @@ export interface User {
 
 export interface QueueItem {
   id: string;
-  sender: string;
-  senderAvatar: string;
+  sender?: string;
+  senderAvatar?: string;
   actionSummary: string;
   confidence: number;
   status: 'auto-approved' | 'needs-attention' | 'snoozed' | 'manual';
   draftPreview: string;
   fullDraft: string;
-  reason: string;
-  timestamp: string;
+  reason?: string;
+  timestamp?: string;
+  type?: string;
+  priority?: string;
+  contextSummary?: string;
+  generatedAt?: string;
+  metadata?: {
+    emailId?: string;
+    from?: string;
+    to?: string[];
+    subject?: string;
+    body?: string;
+    receivedAt?: string;
+    [key: string]: any;
+  };
 }
 
 export interface HistoryItem {

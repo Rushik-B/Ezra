@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { PageType } from '@/types';
-import { initialQueueItems } from '@/lib/mockData';
 import { TopBar } from '@/components/layout/TopBar';
 import { LeftNav } from '@/components/layout/LeftNav';
 import { QueuePage } from '@/components/pages/QueuePage';
@@ -15,9 +14,6 @@ import { SettingsPage } from '@/components/pages/SettingsPage';
 export const EzraApp: React.FC = () => {
   const { data: session } = useSession();
   const [activePage, setActivePage] = useState<PageType>('queue');
-  const [autonomy, setAutonomy] = useState(75);
-  const [queueItems, setQueueItems] = useState(initialQueueItems);
-  const [searchTerm, setSearchTerm] = useState('');
   const [isAutoFetching, setIsAutoFetching] = useState(false);
   const [autoFetchStatus, setAutoFetchStatus] = useState<string>('');
   const [autoFetchCompleted, setAutoFetchCompleted] = useState(false);
@@ -113,22 +109,10 @@ export const EzraApp: React.FC = () => {
     }
   }, [session?.userId, autoFetchCompleted, isAutoFetching, initializationStarted]);
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-  };
-
   const renderPage = () => {
     switch (activePage) {
       case 'queue':
-        return (
-          <QueuePage 
-            queueItems={queueItems.filter(item => 
-              item.sender.toLowerCase().includes(searchTerm.toLowerCase()) || 
-              item.actionSummary.toLowerCase().includes(searchTerm.toLowerCase())
-            )} 
-            setQueueItems={setQueueItems} 
-          />
-        );
+        return <QueuePage />;
       case 'history':
         return <HistoryPage />;
       case 'metrics':
@@ -136,9 +120,9 @@ export const EzraApp: React.FC = () => {
       case 'voice':
         return <VoiceRulesPage />;
       case 'settings':
-        return <SettingsPage autonomy={autonomy} setAutonomy={setAutonomy} />;
+        return <SettingsPage />;
       default:
-        return <QueuePage queueItems={queueItems} setQueueItems={setQueueItems} />;
+        return <QueuePage />;
     }
   };
 
@@ -149,7 +133,7 @@ export const EzraApp: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans flex flex-col">
-      <TopBar autonomy={autonomy} setAutonomy={setAutonomy} onSearch={handleSearch} />
+      <TopBar />
       
       {/* Auto-fetch status banner */}
       {(isAutoFetching || autoFetchStatus) && (

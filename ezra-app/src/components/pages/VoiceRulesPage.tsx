@@ -60,9 +60,11 @@ export const VoiceRulesPage: React.FC = () => {
   
   // Custom email form state
   const [customEmail, setCustomEmail] = useState<CustomEmailForm>({
-    from: 'boss@company.com',
-    subject: 'Project Status Update',
-    body: 'Hi there,\n\nI hope you\'re doing well. I need an update on the current project status. Can you please let me know:\n\n1. What\'s been completed so far?\n2. Any blockers or challenges?\n3. Expected completion date?\n\nThanks!\nJohn'
+    from: 'sara@starboard.ai',
+    subject: 'Deployment update',
+    body: 'Hi all,\n\nQuick update — the maintenance window with Globex went smoothly.\n\nAlex’s team completed the deployment at 12:28 AM PST. Validation steps were finalized shortly after, and we received confirmation from the Globex EU team that data integrity checks are passing on their end. No anomalies reported post-push.\n\nThanks everyone for the coordination and late-night support.\n\nBest,\nSara'
+
+
   });
 
   const [currentPromptInfo, setCurrentPromptInfo] = useState<{

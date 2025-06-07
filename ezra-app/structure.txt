@@ -1,7 +1,5 @@
-## This is the structure of the whole directory of my next.js app.
-## Modify this when you make any changes in the file structure.
-
 .
+├── GMAIL_PUSH_SETUP.md
 ├── README.md
 ├── eslint.config.mjs
 ├── next-env.d.ts
@@ -10,6 +8,12 @@
 ├── package.json
 ├── postcss.config.mjs
 ├── prisma
+│   ├── migrations
+│   │   ├── 20250606224835_add_generated_reply
+│   │   │   └── migration.sql
+│   │   ├── 20250606225402_add_history_id_to_settings
+│   │   │   └── migration.sql
+│   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public
 │   ├── file.svg
@@ -31,6 +35,11 @@
 │   │   │   │   └── route.ts
 │   │   │   ├── generate-reply
 │   │   │   │   └── route.ts
+│   │   │   ├── gmail-push
+│   │   │   │   ├── setup
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── webhook
+│   │   │   │       └── route.ts
 │   │   │   ├── master-prompt
 │   │   │   │   ├── activate
 │   │   │   │   │   └── route.ts
@@ -41,6 +50,12 @@
 │   │   │   │   ├── history
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
+│   │   │   ├── queue
+│   │   │   │   ├── generate-draft
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── route.ts
+│   │   │   ├── test-email
+│   │   │   │   └── route.ts
 │   │   │   └── test-reply-generation
 │   │   │       └── route.ts
 │   │   ├── auth
@@ -49,7 +64,10 @@
 │   │   ├── favicon.ico
 │   │   ├── globals.css
 │   │   ├── layout.tsx
-│   │   └── page.tsx
+│   │   ├── page.tsx
+│   │   └── tools
+│   │       └── test-email
+│   │           └── page.tsx
 │   ├── components
 │   │   ├── EzraApp.tsx
 │   │   ├── SessionProvider.tsx
@@ -61,6 +79,7 @@
 │   │   │   ├── MetricsPage.tsx
 │   │   │   ├── QueuePage.tsx
 │   │   │   ├── SettingsPage.tsx
+│   │   │   ├── TestEmailPage.tsx
 │   │   │   └── VoiceRulesPage.tsx
 │   │   └── ui
 │   │       ├── ActionCard.tsx
@@ -75,6 +94,7 @@
 │   │   ├── calendarService.ts
 │   │   ├── contextEngine.ts
 │   │   ├── gmail.ts
+│   │   ├── gmailPushService.ts
 │   │   ├── llm.ts
 │   │   ├── masterPromptGenerator.ts
 │   │   ├── mockData.tsx
@@ -97,6 +117,7 @@
 │       ├── index.ts
 │       └── next-auth.d.ts
 ├── structure.txt
+├── test-email.js
 ├── test-reply-generation.js
 ├── tsconfig.json
 └── tsconfig.tsbuildinfo

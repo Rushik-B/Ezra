@@ -150,6 +150,56 @@ export class GmailService {
     }
   }
 
+  async sendEmail(params: {
+    to: string;
+    subject: string;
+    body: string;
+    inReplyTo?: string;
+    threadId?: string;
+  }): Promise<any> {
+    await this.refreshTokenIfNeeded();
+
+    const { to, subject, body, inReplyTo, threadId } = params;
+
+    const rawMessage = [
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      inReplyTo ? `In-Reply-To: ${inReplyTo}` : '',
+      inReplyTo ? `References: ${inReplyTo}` : '',
+      'Content-Type: text/html; charset=utf-8',
+      'MIME-Version: 1.0',
+      '',
+      body,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const encodedMessage = Buffer.from(rawMessage)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    const requestBody: { raw: string; threadId?: string } = {
+      raw: encodedMessage,
+    };
+    if (threadId) {
+      requestBody.threadId = threadId;
+    }
+
+    try {
+      const response = await this.gmail.users.messages.send({
+        userId: 'me',
+        requestBody,
+      });
+      console.log(`✅ Email sent successfully to ${to}. Message ID: ${response.data.id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Error sending email to ${to}:`, error);
+      throw error;
+    }
+  }
+
   private parseEmailMessage(message: GmailMessage): EmailData | null {
     try {
       const headers = message.payload.headers

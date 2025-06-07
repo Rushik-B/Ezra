@@ -3,6 +3,7 @@ import { CalendarService } from './calendarService';
 import { GmailService } from './gmail';
 import { prisma } from './prisma';
 import { ContextualInformation, IncomingEmailScannerOutput, FinalContextOutput } from '@/types';
+const parseMessyTime = require('parse-messy-time');
 
 export interface IncomingEmailData {
   from: string;
@@ -73,6 +74,7 @@ export class ContextEngineService {
         rawContextualInfo
       );
 
+
       const result: ContextualInformation = {
         calendarData,
         emailContext: {
@@ -91,6 +93,9 @@ export class ContextEngineService {
           keyFactsUsed: [`${directEmailHistory.length} direct emails`, `${keywordEmailContext.length} keyword matches`, calendarData ? 'Calendar data included' : 'No calendar data'].filter(Boolean)
         }
       };
+
+      //Uncomment to see the result of the context engine
+      console.log("This is the result", result);
 
       console.log(`✅ Contextual information generated successfully`);
       console.log(`📊 Summary: Calendar=${!!calendarData}, Direct emails=${directEmailHistory.length}, Keyword emails=${keywordEmailContext.length}`);
@@ -364,48 +369,31 @@ export class ContextEngineService {
   }
 
   /**
-   * Helper to parse date hints from natural language
+   * Helper to parse date hints from natural language using parse-messy-time library
    */
   private parseDateHint(dateHint: string): Date | null {
     try {
-      const now = new Date();
-      const lowerHint = dateHint.toLowerCase();
-
-      // Handle common patterns
-      if (lowerHint.includes('tomorrow')) {
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        // Try to extract time
-        const timeMatch = dateHint.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)/i);
-        if (timeMatch) {
-          let hours = parseInt(timeMatch[1]);
-          const minutes = parseInt(timeMatch[2] || '0');
-          const isPM = timeMatch[3].toLowerCase() === 'pm';
-          
-          if (isPM && hours !== 12) hours += 12;
-          if (!isPM && hours === 12) hours = 0;
-          
-          tomorrow.setHours(hours, minutes, 0, 0);
-        }
-        return tomorrow;
+      console.log(`📅 Attempting to parse date hint: "${dateHint}"`);
+      
+      // Use parse-messy-time library for better natural language parsing
+      const parsedDate = parseMessyTime(dateHint);
+      
+      if (parsedDate && !isNaN(parsedDate.getTime())) {
+        console.log(`✅ Successfully parsed date: ${parsedDate.toISOString()}`);
+        return parsedDate;
       }
 
-      if (lowerHint.includes('next week')) {
-        const nextWeek = new Date(now);
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        return nextWeek;
+      // Fallback to built-in Date parsing
+      const fallbackDate = new Date(dateHint);
+      if (!isNaN(fallbackDate.getTime())) {
+        console.log(`✅ Fallback parsing successful: ${fallbackDate.toISOString()}`);
+        return fallbackDate;
       }
 
-      // Try direct date parsing
-      const parsed = new Date(dateHint);
-      if (!isNaN(parsed.getTime())) {
-        return parsed;
-      }
-
+      console.log(`⚠️ Could not parse date hint: "${dateHint}"`);
       return null;
     } catch (error) {
-      console.error('Error parsing date hint:', error);
+      console.error(`❌ Error parsing date hint "${dateHint}":`, error);
       return null;
     }
   }

@@ -58,7 +58,7 @@ export const ActionCard: React.FC<ActionCardProps> = ({ item, onAction }) => {
           </div>
           <div className="flex flex-col items-end space-y-1">
             <ConfidencePill confidence={item.confidence} />
-            <p className="text-xs text-gray-400 dark:text-gray-500">{timeSince(item.timestamp)}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">{item.timestamp ? timeSince(item.timestamp) : 'Recently'}</p>
           </div>
         </div>
 

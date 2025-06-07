@@ -50,6 +50,10 @@ export class LLMService {
   private liteModel: ChatGoogleGenerativeAI;
   private advancedModel: ChatGoogleGenerativeAI;
   private tokenizer: any;
+  private requestQueue: Array<() => Promise<any>> = [];
+  private isProcessingQueue: boolean = false;
+  private lastRequestTime: number = 0;
+  private readonly MIN_REQUEST_INTERVAL = 4000; // 4 seconds between requests for free tier
 
   constructor() {
     if (!process.env.GOOGLE_API_KEY) {
@@ -79,15 +83,94 @@ export class LLMService {
         model: "gemini-2.5-flash-preview-05-20",
         apiKey: process.env.GOOGLE_API_KEY,
         temperature: 0.6,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 16384,
       });
+      console.log("✅ Advanced model initialized successfully");
     } catch (error) {
       console.warn("⚠️ Failed to initialize advanced model, falling back to standard model:", error);
-      this.advancedModel = this.model; // Fallback to standard model
+      this.advancedModel = new ChatGoogleGenerativeAI({
+        model: "gemini-2.5-flash-preview-05-20",
+        apiKey: process.env.GOOGLE_API_KEY,
+        temperature: 0.7,
+        maxOutputTokens: 16384,
+      });
+      console.log("✅ Fallback to standard model for advanced tasks");
     }
 
     // Initialize tokenizer for accurate token counting
     this.tokenizer = encoding_for_model("gpt-4");
+  }
+
+  /**
+   * Rate-limited request execution to prevent 503 errors on free tier
+   */
+  private async executeWithRateLimit<T>(requestFn: () => Promise<T>, retries: number = 3): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push(async () => {
+        try {
+          const result = await this.retryRequest(requestFn, retries);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      
+      this.processQueue();
+    });
+  }
+
+  /**
+   * Process request queue with rate limiting
+   */
+  private async processQueue() {
+    if (this.isProcessingQueue || this.requestQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessingQueue = true;
+
+    while (this.requestQueue.length > 0) {
+      const currentTime = Date.now();
+      const timeSinceLastRequest = currentTime - this.lastRequestTime;
+
+      if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL) {
+        const delay = this.MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+        console.log(`🕐 Rate limiting: waiting ${delay}ms before next API call`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      const request = this.requestQueue.shift();
+      if (request) {
+        this.lastRequestTime = Date.now();
+        await request();
+      }
+    }
+
+    this.isProcessingQueue = false;
+  }
+
+  /**
+   * Retry logic for 503 and rate limit errors
+   */
+  private async retryRequest<T>(requestFn: () => Promise<T>, retries: number): Promise<T> {
+    for (let attempt = 1; attempt <= retries + 1; attempt++) {
+      try {
+        return await requestFn();
+      } catch (error: any) {
+        const is503Error = error.message?.includes('503') || error.message?.includes('overloaded');
+        const is429Error = error.message?.includes('429') || error.message?.includes('rate limit');
+        
+        if ((is503Error || is429Error) && attempt <= retries) {
+          const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Exponential backoff, max 30s
+          console.log(`⚠️ API overloaded (attempt ${attempt}/${retries + 1}), retrying in ${backoffDelay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoffDelay));
+          continue;
+        }
+        
+        throw error;
+      }
+    }
+    throw new Error('Max retries exceeded');
   }
 
   /**
@@ -161,13 +244,18 @@ export class LLMService {
     this.logTokenUsage("GenerateText", fullPrompt);
 
     try {
-      const response = await this.advancedModel.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(prompt)
-      ]);
+      const result = await this.executeWithRateLimit(async () => {
+        if (!this.advancedModel) {
+          throw new Error("Advanced model not properly initialized");
+        }
+        const response = await this.advancedModel.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(prompt)
+        ]);
+        return response.content as string;
+      });
 
       console.log("📥 Received response from LLM");
-      const result = response.content as string;
       this.logTokenUsage("GenerateText", fullPrompt, result);
       
       return result;
@@ -190,11 +278,14 @@ export class LLMService {
     this.logTokenUsage("DistilledMasterPrompt", fullPrompt);
 
     try {
-      const response = await this.model.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(prompt)
-      ]);
-      const distilledPrompt = response.content as string;
+      const distilledPrompt = await this.executeWithRateLimit(async () => {
+        const response = await this.model.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(prompt)
+        ]);
+        return response.content as string;
+      });
+      
       this.logTokenUsage("DistilledMasterPrompt", fullPrompt, distilledPrompt);
       console.log("✅ Distilled Master Prompt generated.");
       return distilledPrompt.trim();
@@ -224,11 +315,14 @@ export class LLMService {
     this.logTokenUsage("UpdateFullMasterPrompt", fullPrompt);
 
     try {
-      const response = await this.advancedModel.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(prompt)
-      ]);
-      const updatedFullPrompt = response.content as string;
+      const updatedFullPrompt = await this.executeWithRateLimit(async () => {
+        const response = await this.advancedModel.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(prompt)
+        ]);
+        return response.content as string;
+      });
+      
       this.logTokenUsage("UpdateFullMasterPrompt", fullPrompt, updatedFullPrompt);
       console.log("✅ Full Master Prompt updated from distilled edits.");
       return updatedFullPrompt.trim();
@@ -262,19 +356,22 @@ export class LLMService {
 
     try {
       const prompt = await styleAnalysisPrompt.format({
-        emailHistory: emailHistoryText
+        emailHistory: emailHistoryText,
+        generalUserStyle: "Default communication style for analysis comparison."
       });
 
       const systemMessage = "You are an expert at analyzing communication styles and patterns.";
       const fullPrompt = systemMessage + "\n\n" + prompt;
       this.logTokenUsage("StyleSummary", fullPrompt);
 
-      const response = await this.model.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(prompt)
-      ]);
+      const result = await this.executeWithRateLimit(async () => {
+        const response = await this.model.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(prompt)
+        ]);
+        return response.content as string;
+      });
 
-      const result = response.content as string;
       this.logTokenUsage("StyleSummary", fullPrompt, result);
 
       return result;
@@ -311,13 +408,15 @@ export class LLMService {
       const fullPrompt = systemMessage + "\n\n" + formattedPrompt;
       this.logTokenUsage("IncomingScanner", fullPrompt);
 
-      const response = await this.model.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(formattedPrompt)
-      ]);
+      const responseText = await this.executeWithRateLimit(async () => {
+        const response = await this.model.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(formattedPrompt)
+        ]);
+        return response.content as string;
+      });
       
       // Parse JSON response
-      const responseText = response.content as string;
       this.logTokenUsage("IncomingScanner", fullPrompt, responseText);
       
       const cleanedResponse = responseText.replace(/```json\n?|\n?```/g, '').trim();
@@ -381,12 +480,14 @@ export class LLMService {
       const fullPrompt = systemMessage + "\n\n" + formattedPrompt;
       this.logTokenUsage("StyleCompressor", fullPrompt);
 
-      const response = await this.model.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(formattedPrompt)
-      ]);
+      const compressedStyleGuide = await this.executeWithRateLimit(async () => {
+        const response = await this.model.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(formattedPrompt)
+        ]);
+        return response.content as string;
+      });
       
-      const compressedStyleGuide = response.content as string;
       this.logTokenUsage("StyleCompressor", fullPrompt, compressedStyleGuide);
       
       console.log(`✅ Style compressed into efficient guide (${compressedStyleGuide.length} characters)`);
@@ -445,12 +546,14 @@ CRITICAL NOTES:
       const fullPrompt = systemMessage + "\n\n" + formattedPrompt;
       this.logTokenUsage("ContextSynthesizer", fullPrompt);
 
-      const response = await this.model.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(formattedPrompt)
-      ]);
+      const replyInstructions = await this.executeWithRateLimit(async () => {
+        const response = await this.model.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(formattedPrompt)
+        ]);
+        return response.content as string;
+      });
       
-      const replyInstructions = response.content as string;
       this.logTokenUsage("ContextSynthesizer", fullPrompt, replyInstructions);
       
       console.log(`✅ Context synthesized into reply instructions (${replyInstructions.length} characters)`);
@@ -524,13 +627,15 @@ Low - Context synthesis failed, using minimal response strategy`;
       const fullPrompt = systemMessage + "\n\n" + formattedPrompt;
       this.logTokenUsage("FinalToolContextGenerator", fullPrompt);
 
-      const response = await this.liteModel.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(formattedPrompt)
-      ]);
+      const rawContextInfo = await this.executeWithRateLimit(async () => {
+        const response = await this.liteModel.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(formattedPrompt)
+        ]);
+        return response.content as string;
+      });
       
       // Return raw text response (no JSON parsing needed)
-      const rawContextInfo = response.content as string;
       this.logTokenUsage("FinalToolContextGenerator", fullPrompt, rawContextInfo);
       
       console.log(`✅ Raw contextual information generated (${rawContextInfo.length} characters)`);
@@ -604,13 +709,15 @@ RESPONSE GUIDANCE:
       const fullPrompt = systemMessage + "\n\n" + prompt;
       this.logTokenUsage("GenerateReply", fullPrompt);
 
-      const response = await this.model.invoke([
-        new SystemMessage(systemMessage),
-        new HumanMessage(prompt)
-      ]);
+      const responseText = await this.executeWithRateLimit(async () => {
+        const response = await this.model.invoke([
+          new SystemMessage(systemMessage),
+          new HumanMessage(prompt)
+        ]);
+        return response.content as string;
+      });
 
       console.log("📥 Received response from LLM");
-      const responseText = response.content as string;
       this.logTokenUsage("GenerateReply", fullPrompt, responseText);
       console.log("🔍 Response preview:", responseText.substring(0, 200) + "...");
 
