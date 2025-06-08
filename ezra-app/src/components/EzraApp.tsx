@@ -3,13 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { PageType } from '@/types';
-import { TopBar } from '@/components/layout/TopBar';
-import { LeftNav } from '@/components/layout/LeftNav';
+import { AppSidebar } from '@/components/app-sidebar';
 import { QueuePage } from '@/components/pages/QueuePage';
 import { HistoryPage } from '@/components/pages/HistoryPage';
 import { MetricsPage } from '@/components/pages/MetricsPage';
 import { VoiceRulesPage } from '@/components/pages/VoiceRulesPage';
 import { SettingsPage } from '@/components/pages/SettingsPage';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 
 export const EzraApp: React.FC = () => {
   const { data: session } = useSession();
@@ -126,47 +135,88 @@ export const EzraApp: React.FC = () => {
     }
   };
 
+  const getPageTitle = () => {
+    switch (activePage) {
+      case 'queue':
+        return 'Inbox Intelligence';
+      case 'history':
+        return 'Activity History';
+      case 'metrics':
+        return 'Performance Analytics';
+      case 'voice':
+        return 'Voice & Rules Configuration';
+      case 'settings':
+        return 'Settings';
+      default:
+        return 'Inbox Intelligence';
+    }
+  };
+
   // Only render the app if user is authenticated
   if (!session) {
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-inter">
-      <TopBar onLogoClick={() => setActivePage('queue')} />
-      
-      {/* Auto-fetch status banner */}
-      {(isAutoFetching || autoFetchStatus) && (
-        <div className="bg-blue-500/10 backdrop-blur border-b border-blue-500/20 px-6 py-3 mt-16">
-          <div className="flex items-center justify-center max-w-7xl mx-auto">
-            {isAutoFetching && (
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-                </div>
-                <span className="text-sm font-medium text-blue-200">
-                  {autoFetchStatus || 'Connecting to your email...'}
-                </span>
+    <div className="min-h-screen bg-slate-100">
+      <SidebarProvider>
+        <AppSidebar activePage={activePage} setActivePage={setActivePage} />
+        <SidebarInset className="flex-1 min-w-0">
+          {/* Header */}
+          <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 bg-white border-b border-slate-300 shadow-sm transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <div className="flex items-center gap-2 px-6">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink href="#" className="text-slate-600 hover:text-slate-900">
+                      Ezra AI
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage className="font-medium text-slate-900">{getPageTitle()}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          </header>
+
+          {/* Auto-fetch status banner */}
+          {(isAutoFetching || autoFetchStatus) && (
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-300 px-6 py-3 shadow-sm">
+              <div className="flex items-center justify-center max-w-7xl mx-auto">
+                {isAutoFetching && (
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      <div className="w-4 h-4 border-2 border-blue-400 border-t-blue-600 rounded-full animate-spin"></div>
+                    </div>
+                    <span className="text-sm font-medium text-blue-800">
+                      {autoFetchStatus || 'Connecting to your email...'}
+                    </span>
+                  </div>
+                )}
+                {!isAutoFetching && autoFetchStatus && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-emerald-800">
+                      {autoFetchStatus}
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-            {!isAutoFetching && autoFetchStatus && (
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                <span className="text-sm font-medium text-emerald-200">
-                  {autoFetchStatus}
-                </span>
-              </div>
-            )}
+            </div>
+          )}
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-auto">
+            <div className="w-full">
+              {renderPage()}
+            </div>
           </div>
-        </div>
-      )}
-      
-      <div className="flex pt-16">
-        <LeftNav activePage={activePage} setActivePage={setActivePage} />
-        <main className="flex-1 ml-72 bg-slate-950 min-h-screen">
-          {renderPage()}
-        </main>
-      </div>
+        </SidebarInset>
+      </SidebarProvider>
     </div>
   );
 }; 

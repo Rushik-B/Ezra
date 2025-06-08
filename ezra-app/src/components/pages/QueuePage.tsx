@@ -1,11 +1,47 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, Clock, Edit3, Mail, X, Send, Trash2, MessageSquare, CheckCircle2, ArrowRight } from 'lucide-react';
+import { 
+  CheckCircle, 
+  Clock, 
+  Edit3, 
+  Mail, 
+  MoreHorizontal, 
+  Send, 
+  Trash2, 
+  X, 
+  Bot,
+  Sparkles,
+  Filter,
+  Search,
+  Archive,
+  Star,
+  AlertCircle,
+  ChevronRight,
+  Eye,
+  Calendar
+} from 'lucide-react';
 import { QueueItem } from '@/types';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export const QueuePage: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'needs-attention' | 'auto-approved' | 'snoozed'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,8 +76,6 @@ export const QueuePage: React.FC = () => {
   };
 
   const handleAction = async (itemId: string, actionType: string) => {
-    console.log(`Action: ${actionType} on item: ${itemId}`);
-    
     if (actionType === 'approve') {
       await handleApprove(itemId);
     } else if (actionType === 'reject') {
@@ -69,7 +103,6 @@ export const QueuePage: React.FC = () => {
       });
 
       if (response.ok) {
-        // Remove item from queue as it's been actioned
         setQueueItems(prev => prev.filter(queueItem => queueItem.id !== itemId));
       }
     } catch (error) {
@@ -118,27 +151,12 @@ export const QueuePage: React.FC = () => {
       });
 
       if (response.ok) {
-        // Remove item from queue
         setQueueItems(prev => prev.filter(queueItem => queueItem.id !== itemId));
         setShowEmailEditor(null);
       }
     } catch (error) {
       console.error('Error sending edited email:', error);
     }
-  };
-  
-  const handleBulkAction = (actionType: string) => {
-    console.log(`Bulk Action: ${actionType} on items:`, Array.from(selectedItems));
-    
-    selectedItems.forEach(itemId => {
-      if (actionType === 'approve') {
-        handleApprove(itemId);
-      } else if (actionType === 'reject') {
-        // For bulk reject, we can't collect individual feedback, so we just reject them.
-        handleReject(itemId, 'Bulk rejection.');
-      }
-    });
-    setSelectedItems(new Set());
   };
 
   const toggleSelectItem = (itemId: string) => {
@@ -155,91 +173,198 @@ export const QueuePage: React.FC = () => {
 
   // Apply filters
   const filteredItems = queueItems
-    .filter(item => filter === 'all' || item.status === filter);
+    .filter(item => filter === 'all' || item.status === filter)
+    .filter(item => 
+      searchQuery === '' || 
+      item.actionSummary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.metadata?.from?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.metadata?.subject?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
-  // Reject Dialog Component
-  const RejectDialog: React.FC<{ itemId: string; onClose: () => void; onSubmit: (feedback: string) => void }> = ({ onClose, onSubmit }) => {
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'needs-attention':
+        return <Badge variant="destructive" className="gap-1"><AlertCircle className="h-3 w-3" />Needs Review</Badge>;
+      case 'auto-approved':
+        return <Badge variant="default" className="gap-1 bg-green-100 text-green-800 border-green-200 hover:bg-green-100"><CheckCircle className="h-3 w-3" />Auto-approved</Badge>;
+      case 'snoozed':
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" />Snoozed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getInitials = (email: string) => {
+    if (!email) return 'U';
+    const parts = email.split('@')[0].split('.');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return email[0].toUpperCase();
+  };
+
+  // Email Queue Card Component
+  const EmailQueueCard: React.FC<{ item: QueueItem }> = ({ item }) => {
     return (
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-8 w-full max-w-md">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-white flex items-center">
-              <Trash2 size={20} className="mr-3 text-red-400" />
-              Reject Response
-            </h3>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-              <X size={24} />
-            </button>
+      <Card className="group bg-white hover:shadow-lg transition-shadow duration-300 rounded-xl border border-gray-200/80" onClick={() => setShowEmailViewer(item)}>
+        <CardContent className="p-5 cursor-pointer">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-4 flex-1">
+              <div className="flex items-center space-x-3 pt-1">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.has(item.id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    toggleSelectItem(item.id);
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 shadow-sm"
+                />
+                <Avatar className="h-10 w-10 border">
+                  <AvatarFallback className="text-sm font-semibold bg-gray-100 text-gray-600">
+                    {getInitials(item.metadata?.from || '')}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="font-semibold text-gray-800 line-clamp-1">
+                        {item.actionSummary}
+                      </h3>
+                      {getStatusBadge(item.status)}
+                    </div>
+                    <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">
+                      {item.contextSummary}
+                    </p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500 mt-2">
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        {item.metadata?.from}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {item.metadata?.receivedAt ? new Date(item.metadata.receivedAt).toLocaleDateString() : 'Recently'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {item.draftPreview && (
+                  <Card className="bg-gray-50/70 border-gray-200/80 shadow-sm rounded-lg">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5 uppercase tracking-wider">
+                          <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                          AI-Generated Reply
+                        </span>
+                        <Badge variant="outline" className="text-xs bg-white text-gray-700">Ready</Badge>
+                      </div>
+                      <p className="text-sm text-gray-700 line-clamp-3 leading-relaxed">
+                        {item.draftPreview}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <div className="flex items-center justify-end pt-3">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAction(item.id, 'approve');
+                      }}
+                      className="bg-green-600 hover:bg-green-700 shadow-sm text-white"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1.5" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAction(item.id, 'edit');
+                      }}
+                      className="border-gray-300 hover:bg-gray-100"
+                    >
+                      <Edit3 className="h-4 w-4 mr-1.5" />
+                      Edit & Send
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 hover:bg-gray-100"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleAction(item.id, 'reject');
+                        }}>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Reject
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Archive className="h-4 w-4 mr-2" />
+                          Archive
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                          <Star className="h-4 w-4 mr-2" />
+                          Priority
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-slate-300 mb-6 leading-relaxed">
-            Help improve our AI by providing feedback on why this response should be rejected.
-          </p>
-          <textarea
-            value={rejectFeedback}
-            onChange={(e) => setRejectFeedback(e.target.value)}
-            placeholder="e.g., Too formal, missing context, inappropriate tone..."
-            className="w-full h-32 p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-red-400/50 focus:border-red-400/50 resize-none text-white placeholder-slate-400 text-sm"
-          />
-          <div className="mt-6 flex justify-end space-x-3">
-            <button 
-              onClick={onClose}
-              className="px-5 py-2.5 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={() => onSubmit(rejectFeedback)}
-              disabled={!rejectFeedback.trim()}
-              className="px-5 py-2.5 text-sm font-medium text-white bg-red-500/80 hover:bg-red-500 disabled:bg-red-500/30 rounded-xl flex items-center transition-colors"
-            >
-              <Trash2 size={16} className="mr-2" />
-              Reject Response
-            </button>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   };
 
-  // Email Viewer Component
-  const EmailViewer: React.FC<{ item: QueueItem; onClose: () => void; onAction: (id: string, action: string) => void }> = ({ item, onClose, onAction }) => {
+  // Email Viewer Dialog
+  const EmailViewer: React.FC<{ item: QueueItem; onClose: () => void }> = ({ item, onClose }) => {
     return (
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-semibold text-white flex items-center">
-              <MessageSquare size={20} className="mr-3 text-blue-400" />
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] flex flex-col bg-gray-50 shadow-2xl rounded-lg">
+          <DialogHeader className="p-6 border-b border-gray-200">
+            <DialogTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+              <Mail className="h-6 w-6 text-blue-600" />
               Email Review & AI Response
-            </h3>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-              <X size={24} />
-            </button>
-          </div>
+            </DialogTitle>
+          </DialogHeader>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 flex-1 overflow-auto">
             {/* Original Email */}
-            <div className="space-y-6">
-              <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-6">
-                <h4 className="text-lg font-medium text-blue-200 mb-4 flex items-center">
-                  <Mail size={18} className="mr-3" />
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-base font-semibold flex items-center gap-2 text-gray-800">
+                  <Mail className="h-5 w-5" />
                   Incoming Email
-                </h4>
-                <div className="space-y-3 text-sm">
-                  <div className="flex">
-                    <span className="text-slate-400 w-16">From:</span>
-                    <span className="text-white">{item.metadata?.from}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-slate-400 w-16">Subject:</span>
-                    <span className="text-white">{item.metadata?.subject}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="text-slate-400 w-16">Time:</span>
-                    <span className="text-slate-300">{item.metadata?.receivedAt ? new Date(item.metadata.receivedAt).toLocaleString() : 'Recently'}</span>
-                  </div>
+                </h3>
+              </div>
+              <div className="p-6 flex-1 space-y-4">
+                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                  <span className="text-gray-500 font-medium">From:</span>
+                  <span className="font-semibold text-gray-800">{item.metadata?.from}</span>
+                  <span className="text-gray-500 font-medium">Subject:</span>
+                  <span className="font-semibold text-gray-800">{item.metadata?.subject}</span>
                 </div>
-                <div className="mt-6 p-4 bg-slate-950/50 rounded-lg border border-slate-700/30 max-h-64 overflow-y-auto">
-                  <div className="whitespace-pre-wrap text-sm text-slate-200 leading-relaxed">
+                <Separator />
+                <div className="bg-gray-50/50 rounded-lg p-4 h-full overflow-y-auto border border-gray-200">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
                     {item.metadata?.body || 'Email content not available'}
                   </div>
                 </div>
@@ -247,14 +372,16 @@ export const QueuePage: React.FC = () => {
             </div>
 
             {/* AI Generated Response */}
-            <div className="space-y-6">
-              <div className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-6">
-                <h4 className="text-lg font-medium text-emerald-200 mb-4 flex items-center">
-                  <CheckCircle2 size={18} className="mr-3" />
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col">
+              <div className="p-4 border-b border-gray-200 bg-blue-50/50">
+                <h3 className="text-base font-semibold flex items-center gap-2 text-blue-800">
+                  <Sparkles className="h-5 w-5" />
                   AI Generated Reply
-                </h4>
-                <div className="mt-6 p-4 bg-slate-950/50 rounded-lg border border-slate-700/30 max-h-64 overflow-y-auto">
-                  <div className="whitespace-pre-wrap text-sm text-slate-200 leading-relaxed">
+                </h3>
+              </div>
+              <div className="p-6 flex-1">
+                <div className="bg-gray-50/50 rounded-lg p-4 h-full overflow-y-auto border border-gray-200">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
                     {item.fullDraft || item.draftPreview || 'No draft available'}
                   </div>
                 </div>
@@ -262,360 +389,363 @@ export const QueuePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="mt-8 flex justify-between items-center">
-            <div className="text-sm text-slate-400">
-              Review both emails and choose your action
-            </div>
-            <div className="flex space-x-3">
-              <button 
-                onClick={onClose}
-                className="px-5 py-2.5 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => { onAction(item.id, 'reject'); onClose(); }}
-                className="px-5 py-2.5 text-sm font-medium text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl flex items-center transition-colors"
-              >
-                <Trash2 size={16} className="mr-2" />
-                Reject
-              </button>
-              <button
-                onClick={() => { onAction(item.id, 'edit'); onClose(); }}
-                className="px-5 py-2.5 text-sm font-medium text-blue-300 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl flex items-center transition-colors"
-              >
-                <Edit3 size={16} className="mr-2" />
-                Edit
-              </button>
-              <button
-                onClick={() => { onAction(item.id, 'approve'); onClose(); }}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-500/80 hover:bg-emerald-500 rounded-xl flex items-center transition-colors"
-              >
-                <ShieldCheck size={16} className="mr-2" />
-                Approve & Send
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+          <DialogFooter className="p-6 border-t border-gray-200">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => { handleAction(item.id, 'reject'); onClose(); }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Reject
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { handleAction(item.id, 'edit'); onClose(); }}
+            >
+              <Edit3 className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button
+              onClick={() => { handleAction(item.id, 'approve'); onClose(); }}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approve & Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   };
 
-  // Email Editor Component
-  const EmailEditor: React.FC<{ item: QueueItem; onClose: () => void; onSend: (content: string) => void }> = ({ item, onClose, onSend }) => {
+  // Reject Dialog
+  const RejectDialog: React.FC<{ itemId: string; onClose: () => void }> = ({ onClose }) => {
+    return (
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md bg-white shadow-xl rounded-lg">
+          <DialogHeader className="p-6 border-b border-gray-200">
+            <DialogTitle className="flex items-center gap-3 text-lg font-semibold text-gray-900">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Reject AI Response
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-gray-600">
+              Your feedback helps our AI improve. Why are you rejecting this response?
+            </p>
+            <Textarea
+              value={rejectFeedback}
+              onChange={(e) => setRejectFeedback(e.target.value)}
+              placeholder="e.g., Tone was off, missed key details..."
+              className="min-h-[120px] focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <DialogFooter className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => handleReject(showRejectDialog!, rejectFeedback)}
+              disabled={!rejectFeedback.trim()}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  // Email Editor Dialog
+  const EmailEditor: React.FC<{ item: QueueItem; onClose: () => void }> = ({ item, onClose }) => {
     const [emailContent, setEmailContent] = useState(item.fullDraft || '');
     const [subject, setSubject] = useState(`Re: ${item.metadata?.subject || ''}`);
     
     return (
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-        <div className="bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 p-8 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-semibold text-white flex items-center">
-              <Edit3 size={20} className="mr-3 text-blue-400" />
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] flex flex-col bg-gray-50 shadow-2xl rounded-lg">
+          <DialogHeader className="p-6 border-b border-gray-200">
+            <DialogTitle className="flex items-center gap-3 text-xl font-semibold text-gray-900">
+              <Edit3 className="h-6 w-6 text-blue-600" />
               Edit & Send Email
-            </h3>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-              <X size={24} />
-            </button>
-          </div>
+            </DialogTitle>
+          </DialogHeader>
           
-          {/* Email Headers */}
-          <div className="space-y-6 mb-8">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">To:</label>
-              <input
-                type="text"
-                value={item.metadata?.from || ''}
-                disabled
-                className="w-full p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl text-slate-400"
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 flex-1 overflow-auto">
+            {/* Original Email */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-base font-semibold text-gray-800">Original Message</h3>
+              </div>
+              <div className="p-6 flex-1 space-y-4">
+                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                  <span className="text-gray-500 font-medium">From:</span>
+                  <span className="font-semibold text-gray-800">{item.metadata?.from}</span>
+                  <span className="text-gray-500 font-medium">Subject:</span>
+                  <span className="font-semibold text-gray-800">{item.metadata?.subject}</span>
+                </div>
+                <Separator />
+                <div className="bg-gray-50/50 rounded-lg p-4 h-full overflow-y-auto border border-gray-200">
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                    {item.metadata?.body || 'Email content not available'}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Subject:</label>
-              <input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="w-full p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white"
-              />
-            </div>
-          </div>
 
-          {/* Original Email Context */}
-          <div className="mb-8 p-6 bg-slate-900/30 border border-slate-700/30 rounded-xl">
-            <h4 className="text-sm font-medium text-slate-300 mb-3">Original Email:</h4>
-            <div className="text-sm text-slate-400 space-y-2">
-              <p><span className="font-medium">From:</span> {item.metadata?.from}</p>
-              <p><span className="font-medium">Subject:</span> {item.metadata?.subject}</p>
-              <div className="mt-4 p-4 bg-slate-950/50 rounded-lg border border-slate-700/30 max-h-32 overflow-y-auto">
-                <div className="text-xs text-slate-300">
-                  {item.metadata?.body?.substring(0, 300)}{item.metadata?.body && item.metadata.body.length > 300 ? '...' : ''}
+            {/* Reply Editor */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col">
+              <div className="p-4 border-b border-gray-200 bg-blue-50/50">
+                <h3 className="text-base font-semibold text-blue-800">Your Reply</h3>
+              </div>
+              <div className="p-6 flex-1 space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1.5">To</label>
+                  <Input
+                    value={item.metadata?.from || ''}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1.5">Subject</label>
+                  <Input
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700 block mb-1.5">Message</label>
+                  <Textarea
+                    value={emailContent}
+                    onChange={(e) => setEmailContent(e.target.value)}
+                    placeholder="Write your email reply here..."
+                    className="h-full resize-none focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Email Content Editor */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-slate-300 mb-3">Your Reply:</label>
-            <textarea
-              value={emailContent}
-              onChange={(e) => setEmailContent(e.target.value)}
-              placeholder="Write your email reply here..."
-              className="w-full h-64 p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 resize-none text-white placeholder-slate-400"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-slate-400">
-              Draft generated by AI
-            </div>
-            <div className="flex space-x-3">
-              <button 
-                onClick={onClose}
-                className="px-5 py-2.5 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => onSend(emailContent)}
-                disabled={!emailContent.trim()}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-blue-500/80 hover:bg-blue-500 disabled:bg-blue-500/30 rounded-xl flex items-center transition-colors"
-              >
-                <Send size={16} className="mr-2" />
-                Send Email
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Email Queue Card Component
-  const EmailQueueCard: React.FC<{ item: QueueItem; onAction: (id: string, action: string) => void }> = ({ item, onAction }) => {
-    
-    return (
-      <div 
-        className="group bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-6 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all duration-300 cursor-pointer"
-        onClick={() => setShowEmailViewer(item)}
-      >
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-1">
-            <h3 className="font-medium text-white mb-2 group-hover:text-blue-200 transition-colors">
-              {item.actionSummary}
-            </h3>
-            <p className="text-sm text-slate-400 mb-3 leading-relaxed">
-              {item.contextSummary}
-            </p>
-            <div className="flex items-center space-x-6 text-xs text-slate-500">
-              <span className="flex items-center">
-                <Mail size={12} className="mr-2" />
-                {item.metadata?.from}
-              </span>
-              <span className="flex items-center">
-                <Clock size={12} className="mr-2" />
-                {item.metadata?.receivedAt ? new Date(item.metadata.receivedAt).toLocaleDateString() : 'Recently'}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className={`px-3 py-1.5 text-xs font-medium rounded-full ${
-              item.status === 'needs-attention' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-              item.status === 'auto-approved' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-              'bg-slate-500/20 text-slate-300 border border-slate-500/30'
-            }`}>
-              {item.status.replace('-', ' ')}
-            </span>
-          </div>
-        </div>
-        
-        {item.draftPreview && (
-          <div className="mb-4 p-4 bg-slate-900/40 border border-slate-700/30 rounded-xl">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-medium text-slate-300">AI Generated Reply:</span>
-              <span className="text-xs text-emerald-400">Ready to send</span>
-            </div>
-            <p className="text-sm text-slate-200 leading-relaxed">
-              {item.draftPreview}
-            </p>
-          </div>
-        )}
-        
-        <div className="flex justify-between items-center">
-          <div className="text-xs text-blue-400 font-medium flex items-center">
-            <span>Click to review</span>
-            <ArrowRight size={12} className="ml-2" />
-          </div>
-          <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => onAction(item.id, 'approve')}
-              className="px-4 py-2 text-xs font-medium text-white bg-emerald-500/80 hover:bg-emerald-500 rounded-lg flex items-center transition-colors"
+          <DialogFooter className="p-6 bg-gray-100 border-t border-gray-200">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => handleSendEditedEmail(item.id, emailContent)}
+              disabled={!emailContent.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <ShieldCheck size={12} className="mr-1.5" />
-              Approve
-            </button>
-            <button
-              onClick={() => onAction(item.id, 'edit')}
-              className="px-4 py-2 text-xs font-medium text-blue-300 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg flex items-center transition-colors"
-            >
-              <Edit3 size={12} className="mr-1.5" />
-              Edit
-            </button>
-            <button
-              onClick={() => onAction(item.id, 'reject')}
-              className="px-4 py-2 text-xs font-medium text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg flex items-center transition-colors"
-            >
-              <Trash2 size={12} className="mr-1.5" />
-              Reject
-            </button>
-          </div>
-        </div>
-      </div>
+              <Send className="h-4 w-4 mr-2" />
+              Send Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <div className="p-8 space-y-8">
+    <div className="bg-gray-50 min-h-full">
+      <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-8">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
-            <div className="flex-1 mb-6 lg:mb-0">
-              <h1 className="text-3xl font-semibold text-white mb-2">
-                Inbox Intelligence
-              </h1>
-              <p className="text-slate-400 max-w-2xl leading-relaxed">
-                AI-powered email management dashboard. Review, approve, and manage your automated email responses.
-              </p>
-            </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
+          <h1 className="text-3xl font-bold text-gray-900">Inbox</h1>
+          <p className="text-gray-600 mt-1">Review and manage AI-generated email replies.</p>
+        </div>
+
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search emails..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 w-full sm:w-80 bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-1.5">
+                  <Filter className="h-4 w-4" />
+                  Filter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setFilter('all')}>All Emails</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilter('needs-attention')}>Needs Review</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilter('auto-approved')}>Auto-approved</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilter('snoozed')}>Snoozed</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
-            <div className="flex items-center space-x-2 bg-slate-900/50 p-1.5 rounded-xl border border-slate-700/50">
-              {(['all', 'needs-attention', 'auto-approved', 'snoozed'] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-4 py-2.5 text-xs font-medium rounded-lg transition-all duration-200
-                    ${filter === f 
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                    }`}
-                >
-                  {f.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                </button>
-              ))}
-            </div>
+            {(['all', 'needs-attention', 'auto-approved', 'snoozed'] as const).map(f => (
+              <Button
+                key={f}
+                variant={filter === f ? "default" : "outline"}
+                onClick={() => setFilter(f)}
+                className={`hidden sm:inline-flex ${
+                  filter === f 
+                    ? 'bg-gray-800 text-white hover:bg-gray-900' 
+                    : 'bg-white hover:bg-gray-100'
+                }`}
+              >
+                {f.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+              </Button>
+            ))}
           </div>
         </div>
 
-        {/* Stats Bar */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-400">
-            Showing {filteredItems.length} {filteredItems.length === 1 ? 'email' : 'emails'}
-          </span>
-          <div className="flex space-x-6 items-center">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-              <span className="text-slate-400 text-xs">Auto-approved</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-              <span className="text-slate-400 text-xs">Needs review</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span className="text-slate-400 text-xs">Snoozed</span>
-            </div>
-          </div>
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-white shadow-sm border-gray-200/80">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Total</p>
+                  <p className="text-2xl font-bold text-gray-800">{queueItems.length}</p>
+                </div>
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  <Mail className="h-6 w-6 text-gray-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white shadow-sm border-gray-200/80">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Needs Review</p>
+                  <p className="text-2xl font-bold text-red-600">
+                    {queueItems.filter(item => item.status === 'needs-attention').length}
+                  </p>
+                </div>
+                <div className="p-3 bg-red-100 rounded-lg">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white shadow-sm border-gray-200/80">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Auto-approved</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {queueItems.filter(item => item.status === 'auto-approved').length}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white shadow-sm border-gray-200/80">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Filtered</p>
+                  <p className="text-2xl font-bold text-gray-800">{filteredItems.length}</p>
+                </div>
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  <Filter className="h-6 w-6 text-gray-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Bulk Actions */}
         {selectedItems.size > 0 && (
-          <div className="bg-blue-500/10 backdrop-blur-sm border border-blue-500/20 rounded-xl p-4 flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-200">
-              {selectedItems.size} {selectedItems.size === 1 ? 'item' : 'items'} selected
-            </span>
-            <div className="space-x-3">
-              <button 
-                onClick={() => handleBulkAction('approve')} 
-                className="px-4 py-2 text-xs font-medium text-white bg-emerald-500/80 hover:bg-emerald-500 rounded-lg transition-colors"
-              >
-                Approve Selected
-              </button>
-              <button 
-                onClick={() => handleBulkAction('reject')} 
-                className="px-4 py-2 text-xs font-medium text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-lg transition-colors"
-              >
-                Reject Selected
-              </button>
-            </div>
-          </div>
+          <Card className="bg-blue-50 border-blue-200 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-blue-800">
+                  {selectedItems.size} {selectedItems.size === 1 ? 'item' : 'items'} selected
+                </span>
+                <div className="flex gap-2">
+                  <Button size="sm" className="bg-white border-gray-300 text-gray-700 hover:bg-gray-100">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approve All
+                  </Button>
+                  <Button size="sm" className="bg-white border-gray-300 text-gray-700 hover:bg-gray-100">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Reject All
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Email List */}
         {loading ? (
-          <div className="text-center py-16">
-            <div className="relative w-12 h-12 mx-auto mb-6">
-              <div className="w-12 h-12 border-2 border-slate-700 border-t-blue-400 rounded-full animate-spin"></div>
-            </div>
-            <p className="text-lg font-medium text-slate-300">Loading your emails...</p>
-            <p className="text-sm text-slate-500 mt-2">Analyzing incoming messages</p>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="bg-white shadow-sm border-gray-200/80">
+                <CardContent className="p-5">
+                  <div className="flex items-center space-x-4">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : filteredItems.length > 0 ? (
           <div className="space-y-4">
             {filteredItems.map(item => (
-              <div key={item.id} className="flex items-start space-x-4">
-                <input 
-                  type="checkbox" 
-                  className="mt-8 w-4 h-4 text-blue-500 bg-slate-700 border-slate-600 rounded focus:ring-blue-500 focus:ring-2"
-                  checked={selectedItems.has(item.id)}
-                  onChange={() => toggleSelectItem(item.id)}
-                />
-                <div className="flex-1">
-                  <EmailQueueCard item={item} onAction={handleAction} />
-                </div>
-              </div>
+              <EmailQueueCard key={item.id} item={item} />
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-12 max-w-md mx-auto">
-              <Mail size={48} className="mx-auto text-slate-500 mb-6" />
-              <h3 className="text-lg font-medium text-slate-300 mb-2">All Clear</h3>
-              <p className="text-sm text-slate-500">
-                No emails in your queue. New messages will appear here automatically.
+          <Card className="bg-white shadow-sm border-gray-200/80">
+            <CardContent className="p-16 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full mx-auto flex items-center justify-center mb-6">
+                <Mail className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">All Caught Up</h3>
+              <p className="text-gray-500">
+                Your inbox is empty. New items will appear here.
               </p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Dialog Modals */}
+        {showRejectDialog && (
+          <RejectDialog 
+            itemId={showRejectDialog}
+            onClose={() => setShowRejectDialog(null)} 
+          />
+        )}
+        
+        {showEmailViewer && (
+          <EmailViewer 
+            item={showEmailViewer}
+            onClose={() => setShowEmailViewer(null)} 
+          />
+        )}
+
+        {showEmailEditor && (
+          <EmailEditor 
+            item={showEmailEditor}
+            onClose={() => setShowEmailEditor(null)} 
+          />
         )}
       </div>
-      
-      {/* Dialog Modals */}
-      {showRejectDialog && (
-        <RejectDialog 
-          itemId={showRejectDialog}
-          onClose={() => setShowRejectDialog(null)} 
-          onSubmit={(feedback) => handleReject(showRejectDialog, feedback)}
-        />
-      )}
-      
-      {showEmailViewer && (
-        <EmailViewer 
-          item={showEmailViewer}
-          onClose={() => setShowEmailViewer(null)} 
-          onAction={handleAction}
-        />
-      )}
-
-      {showEmailEditor && (
-        <EmailEditor 
-          item={showEmailEditor}
-          onClose={() => setShowEmailEditor(null)} 
-          onSend={(content) => handleSendEditedEmail(showEmailEditor.id, content)}
-        />
-      )}
     </div>
   );
 };

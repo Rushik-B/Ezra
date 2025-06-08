@@ -19,20 +19,21 @@ export const MetricsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 relative">
       {/* Blurred content */}
-      <div className="blur-sm opacity-30 p-8">
-        <div className="space-y-8">
+      <div className="blur-sm opacity-30 p-6">
+        <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
-            <div>
-              <h1 className="text-3xl font-semibold text-white mb-2">
-                Performance Analytics
-              </h1>
-              <p className="text-slate-400 max-w-2xl leading-relaxed">
-                Comprehensive insights into your AI assistant's performance and impact
-              </p>
-            </div>
-            
-            <div className="flex items-center space-x-2 bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl p-1.5 mt-6 lg:mt-0">
+          <div className="bg-slate-900/50 border border-slate-700/60 rounded-lg p-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+              <div className="flex-1 mb-4 lg:mb-0">
+                <h1 className="text-2xl font-semibold text-white mb-2">
+                  Performance Analytics
+                </h1>
+                <p className="text-slate-300 max-w-2xl leading-relaxed text-sm">
+                  Comprehensive insights into your AI assistant's performance and impact
+                </p>
+              </div>
+              
+              <div className="flex items-center space-x-2 bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl p-1.5 mt-6 lg:mt-0">
               {['24h', '7d', '30d', '90d'].map(range => (
                 <button
                   key={range}
@@ -46,6 +47,7 @@ export const MetricsPage: React.FC = () => {
                   {range}
                 </button>
               ))}
+              </div>
             </div>
           </div>
 

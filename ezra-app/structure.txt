@@ -1,7 +1,42 @@
 .
 ├── GMAIL_PUSH_SETUP.md
 ├── README.md
+├── components.json
 ├── eslint.config.mjs
+├── example-master-prompt.md
+├── new-sidebar
+│   ├── app
+│   │   ├── dashboard
+│   │   │   └── page.tsx
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── app-sidebar.tsx
+│   │   ├── nav-main.tsx
+│   │   ├── nav-projects.tsx
+│   │   ├── nav-secondary.tsx
+│   │   ├── nav-user.tsx
+│   │   ├── search-form.tsx
+│   │   ├── site-header.tsx
+│   │   └── ui
+│   │       ├── avatar.tsx
+│   │       ├── breadcrumb.tsx
+│   │       ├── button.tsx
+│   │       ├── collapsible.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       ├── sidebar.tsx
+│   │       ├── skeleton.tsx
+│   │       └── tooltip.tsx
+│   ├── hooks
+│   │   └── use-mobile.ts
+│   └── lib
+│       └── utils.ts
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package-lock.json
@@ -13,6 +48,8 @@
 │   │   │   └── migration.sql
 │   │   ├── 20250606225402_add_history_id_to_settings
 │   │   │   └── migration.sql
+│   │   ├── 20250606233445_add_action_history_table
+│   │   │   └── migration.sql
 │   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public
@@ -21,9 +58,12 @@
 │   ├── next.svg
 │   ├── vercel.svg
 │   └── window.svg
+├── shadcn.tsx
 ├── src
 │   ├── app
 │   │   ├── api
+│   │   │   ├── action-history
+│   │   │   │   └── route.ts
 │   │   │   ├── auth
 │   │   │   │   └── [...nextauth]
 │   │   │   │       └── route.ts
@@ -61,6 +101,8 @@
 │   │   ├── auth
 │   │   │   └── signin
 │   │   │       └── page.tsx
+│   │   ├── dashboard
+│   │   │   └── page.tsx
 │   │   ├── favicon.ico
 │   │   ├── globals.css
 │   │   ├── layout.tsx
@@ -71,9 +113,14 @@
 │   ├── components
 │   │   ├── EzraApp.tsx
 │   │   ├── SessionProvider.tsx
+│   │   ├── app-sidebar.tsx
 │   │   ├── layout
 │   │   │   ├── LeftNav.tsx
 │   │   │   └── TopBar.tsx
+│   │   ├── nav-main.tsx
+│   │   ├── nav-projects.tsx
+│   │   ├── nav-secondary.tsx
+│   │   ├── nav-user.tsx
 │   │   ├── pages
 │   │   │   ├── HistoryPage.tsx
 │   │   │   ├── MetricsPage.tsx
@@ -81,14 +128,30 @@
 │   │   │   ├── SettingsPage.tsx
 │   │   │   ├── TestEmailPage.tsx
 │   │   │   └── VoiceRulesPage.tsx
+│   │   ├── search-form.tsx
+│   │   ├── site-header.tsx
 │   │   └── ui
-│   │       ├── ActionCard.tsx
-│   │       ├── ConfidencePill.tsx
-│   │       ├── KeyMetricCard.tsx
-│   │       ├── LineGraph.tsx
-│   │       ├── PieChart.tsx
-│   │       └── Tooltip.tsx
+│   │       ├── avatar.tsx
+│   │       ├── badge.tsx
+│   │       ├── breadcrumb.tsx
+│   │       ├── button.tsx
+│   │       ├── card.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── collapsible.tsx
+│   │       ├── dialog.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       ├── sidebar.tsx
+│   │       ├── skeleton.tsx
+│   │       ├── switch.tsx
+│   │       ├── textarea.tsx
+│   │       └── tooltip.tsx
 │   ├── hooks
+│   │   └── use-mobile.ts
 │   ├── lib
 │   │   ├── auth.ts
 │   │   ├── calendarService.ts

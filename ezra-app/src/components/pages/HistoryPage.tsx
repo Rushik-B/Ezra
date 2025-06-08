@@ -199,62 +199,64 @@ export const HistoryPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 p-8">
-      <div className="space-y-8">
+    <div className="min-h-screen bg-slate-950 p-6">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
-          <div className="flex-1 mb-6 lg:mb-0">
-            <h1 className="text-3xl font-semibold text-white mb-2">
-              Activity History
-            </h1>
-            <p className="text-slate-400 max-w-2xl leading-relaxed">
-              Track all AI actions and decisions. Review past performance and analyze patterns.
-            </p>
-          </div>
-          
-          <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
-            {/* Time Range Filter */}
-            <div className="flex items-center space-x-2 bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl p-1.5">
-              {['1', '7', '30'].map(days => (
-                <button
-                  key={days}
-                  onClick={() => setFilter(days)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    filter === days 
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                  }`}
-                >
-                  {days === '1' ? 'Today' : days === '7' ? '7 days' : '30 days'}
-                </button>
-              ))}
+        <div className="bg-slate-900/50 border border-slate-700/60 rounded-lg p-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+            <div className="flex-1 mb-4 lg:mb-0">
+              <h1 className="text-2xl font-semibold text-white mb-2">
+                Activity History
+              </h1>
+              <p className="text-slate-300 max-w-2xl leading-relaxed text-sm">
+                Track all AI actions and decisions. Review past performance and analyze patterns.
+              </p>
             </div>
-            
-            {/* Action Type Filter and Search */}
-            <div className="flex space-x-3">
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <select 
-                  value={actionTypeFilter} 
-                  onChange={(e) => setActionTypeFilter(e.target.value)}
-                  className="pl-10 pr-4 py-2.5 text-sm bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white appearance-none cursor-pointer"
-                >
-                  <option value="all">All Actions</option>
-                  <option value="sent">Sent/Replied</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="snoozed">Snoozed</option>
-                </select>
+          
+            <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
+              {/* Time Range Filter */}
+              <div className="flex items-center space-x-2 bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl p-1.5">
+                {['1', '7', '30'].map(days => (
+                  <button
+                    key={days}
+                    onClick={() => setFilter(days)}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      filter === days 
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/25' 
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                    }`}
+                  >
+                    {days === '1' ? 'Today' : days === '7' ? '7 days' : '30 days'}
+                  </button>
+                ))}
               </div>
               
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search history..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2.5 text-sm bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-slate-400 w-64"
-                />
+              {/* Action Type Filter and Search */}
+              <div className="flex space-x-3">
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <select 
+                    value={actionTypeFilter} 
+                    onChange={(e) => setActionTypeFilter(e.target.value)}
+                    className="pl-10 pr-4 py-2.5 text-sm bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white appearance-none cursor-pointer"
+                  >
+                    <option value="all">All Actions</option>
+                    <option value="sent">Sent/Replied</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="snoozed">Snoozed</option>
+                  </select>
+                </div>
+                
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="Search history..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2.5 text-sm bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-xl focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-slate-400 w-64"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -301,18 +303,6 @@ export const HistoryPage: React.FC = () => {
                           <span>View details</span>
                           <ArrowRight size={12} className="ml-2" />
                         </div>
-                        {item.undoable && ['EMAIL_SENT', 'EMAIL_EDITED'].includes(item.actionType) && (
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setSelectedHistoryItem(item); 
-                            }} 
-                            className="px-3 py-1.5 text-xs font-medium text-blue-300 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-lg flex items-center transition-colors"
-                          >
-                            <RotateCcw size={12} className="mr-1.5" />
-                            Undo
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
