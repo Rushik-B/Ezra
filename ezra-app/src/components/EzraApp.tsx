@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { PageType } from '@/types';
 import { TopBar } from '@/components/layout/TopBar';
-import { LeftNav } from '@/components/layout/LeftNav';
+import { AppSidebar } from '@/components/layout/app-sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar/sidebar';
 import { QueuePage } from '@/components/pages/QueuePage';
 import { HistoryPage } from '@/components/pages/HistoryPage';
 import { MetricsPage } from '@/components/pages/MetricsPage';
@@ -67,7 +68,7 @@ export const EzraApp: React.FC = () => {
           let statusMessage = `Connected! Analyzed ${data.emailCount} emails.`;
           
           if (data.masterPromptGenerated) {
-            statusMessage += ' AI brain calibrated successfully.';
+            statusMessage += 'Ezra has been trained successfully :)';
           }
           
           setAutoFetchStatus(statusMessage);
@@ -126,47 +127,49 @@ export const EzraApp: React.FC = () => {
     }
   };
 
-  // Only render the app if user is authenticated
-  if (!session) {
-    return null;
-  }
+  if (!session) return null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-inter">
-      <TopBar onLogoClick={() => setActivePage('queue')} />
-      
-      {/* Auto-fetch status banner */}
-      {(isAutoFetching || autoFetchStatus) && (
-        <div className="bg-blue-500/10 backdrop-blur border-b border-blue-500/20 px-6 py-3 mt-16">
-          <div className="flex items-center justify-center max-w-7xl mx-auto">
-            {isAutoFetching && (
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin"></div>
-                </div>
-                <span className="text-sm font-medium text-blue-200">
-                  {autoFetchStatus || 'Connecting to your email...'}
-                </span>
-              </div>
-            )}
-            {!isAutoFetching && autoFetchStatus && (
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-                <span className="text-sm font-medium text-emerald-200">
-                  {autoFetchStatus}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      
-      <div className="flex pt-16">
-        <LeftNav activePage={activePage} setActivePage={setActivePage} />
-        <main className="flex-1 ml-72 bg-slate-950 min-h-screen">
-          {renderPage()}
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-gray-50 text-gray-900 font-inter">
+        <AppSidebar activePage={activePage} setActivePage={setActivePage} />
+        <main className="flex-1 bg-white border-l border-gray-200 flex flex-col">
+                     {/* Top bar and auto-fetch banner */}
+           <TopBar onLogoClick={() => setActivePage('queue')} />
+           {(isAutoFetching || autoFetchStatus) && (
+             <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 mt-16 shadow-elegant">
+               <div className="flex items-center justify-center max-w-7xl mx-auto">
+                 {isAutoFetching && (
+                   <div className="flex items-center space-x-3">
+                     <div className="relative">
+                       <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                     </div>
+                     <span className="text-sm font-medium text-blue-800">
+                       {autoFetchStatus || 'Connecting to your email...'}
+                     </span>
+                   </div>
+                 )}
+                 {!isAutoFetching && autoFetchStatus && (
+                   <div className="flex items-center space-x-2">
+                     <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                     <span className="text-sm font-medium text-emerald-700">
+                       {autoFetchStatus}
+                     </span>
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
+
+                     {/* Main content */}
+           <div className="flex-1 flex flex-col">
+             <div className={`p-6 flex-1 ${(isAutoFetching || autoFetchStatus) ? 'mt-4' : 'mt-20'}`}>
+               {renderPage()}
+             </div>
+           </div>
         </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
-}; 
+
+};
