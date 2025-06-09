@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - daysNumber);
 
     // Build filter conditions
-    const where: any = {
+    const where: Prisma.ActionHistoryWhereInput = {
       userId: session.userId,
       createdAt: {
         gte: startDate

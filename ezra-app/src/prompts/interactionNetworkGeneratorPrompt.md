@@ -37,11 +37,6 @@ A plain-text dump of emails sent by the user.
 -    SIMILAR OTHER FUNCTIONS
 
 
-PRODUCT_INTEGRATION_VETTING
-SALES_CHANNEL_VETTING
-STRATEGIC_FINANCIAL_PARTNERSHIP
-MARKETING_COLLABORATION 
-
 
 # OUTPUT SPEC — Return only this structured JSON, nothing else
 

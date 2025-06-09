@@ -3,9 +3,11 @@
 import { signIn, getProviders } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { FcGoogle } from "react-icons/fc"
+import type { BuiltInProviderType } from "next-auth/providers/index"
+import type { ClientSafeProvider, LiteralUnion } from "next-auth/react"
 
 export default function SignIn() {
-  const [providers, setProviders] = useState<any>(null)
+  const [providers, setProviders] = useState<Record<LiteralUnion<BuiltInProviderType, string>, ClientSafeProvider> | null>(null)
 
   useEffect(() => {
     const setUpProviders = async () => {
@@ -25,7 +27,7 @@ export default function SignIn() {
         
         <div className="space-y-4">
           {providers &&
-            Object.values(providers).map((provider: any) => (
+            Object.values(providers).map((provider) => (
               <div key={provider.name}>
                 <button
                   onClick={() => signIn(provider.id, { callbackUrl: "/" })}

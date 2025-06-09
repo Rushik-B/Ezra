@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Clock, RotateCcw, X, ShieldCheck, Trash2, Edit3, Settings, AlertTriangle, Mail, Filter, ArrowRight } from 'lucide-react';
 
 interface HistoryItem {
@@ -20,17 +20,11 @@ export const HistoryPage: React.FC = () => {
   const [filter, setFilter] = useState('7'); // Days filter: '1', '7', '30'
   const [actionTypeFilter, setActionTypeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedHistoryItem, setSelectedHistoryItem] = useState<HistoryItem | null>(null);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showHistoryViewer, setShowHistoryViewer] = useState<HistoryItem | null>(null);
 
-  // Fetch history items on component mount and when filters change
-  useEffect(() => {
-    fetchHistoryItems();
-  }, [filter, actionTypeFilter]);
-
-  const fetchHistoryItems = async () => {
+  const fetchHistoryItems = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -53,7 +47,12 @@ export const HistoryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, actionTypeFilter]);
+
+  // Fetch history items on component mount and when filters change
+  useEffect(() => {
+    fetchHistoryItems();
+  }, [fetchHistoryItems]);
 
   const filteredHistory = historyItems.filter(item => {
     if (searchTerm && !item.actionSummary.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -62,11 +61,6 @@ export const HistoryPage: React.FC = () => {
     return true;
   });
   
-  const handleUndo = (itemId: string) => {
-    console.log(`Undo action for ${itemId}`);
-    // TODO: Implement undo functionality
-  };
-
   // Get icon for action type
   const getActionIcon = (actionType: string) => {
     switch (actionType) {
@@ -313,7 +307,6 @@ export const HistoryPage: React.FC = () => {
                         <button 
                           onClick={(e) => { 
                             e.stopPropagation(); 
-                            setSelectedHistoryItem(item); 
                           }} 
                           className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg flex items-center transition-colors cursor-pointer"
                         >

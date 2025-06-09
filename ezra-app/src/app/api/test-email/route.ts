@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { GmailService } from '@/lib/gmail';
 import { ReplyGeneratorService } from '@/lib/replyGenerator';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -97,7 +96,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Return helpful info about how to use this endpoint
   return NextResponse.json({
     endpoint: 'Test Email Simulation',

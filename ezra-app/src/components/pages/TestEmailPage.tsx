@@ -46,7 +46,7 @@ export const TestEmailPage: React.FC = () => {
       } else {
         setStatusMessage({ type: 'error', message: `Error: ${result.error || 'Failed to send email.'}` });
       }
-    } catch (error) {
+    } catch {
       setStatusMessage({ type: 'error', message: 'Network error. Please try again.' });
     } finally {
       setIsLoading(false);

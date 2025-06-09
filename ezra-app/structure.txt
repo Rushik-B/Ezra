@@ -17,11 +17,7 @@ Please eidt this file when you change anything in this structure.
 │   │   ├── 20250606224835_add_generated_reply
 │   │   │   └── migration.sql
 │   │   ├── 20250606225402_add_history_id_to_settings
-│   │   │   └── migration.sql
-│   │   ├── 20250606233445_add_action_history_table
-│   │   │   └── migration.sql
-│   │   ├── 20250609183409_replace_master_prompt_with_personalized_os
-│   │   │   └── migration.sql
+
 │   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public
@@ -92,8 +88,13 @@ Please eidt this file when you change anything in this structure.
 │   │   ├── EzraApp.tsx
 │   │   ├── SessionProvider.tsx
 │   │   ├── layout
-│   │   │   ├── LeftNav.tsx
-│   │   │   └── TopBar.tsx
+│   │   │   ├── TopBar.tsx
+│   │   │   └── app-sidebar.tsx
+│   │   ├── navbar-components
+│   │   │   ├── nav-main.tsx
+│   │   │   ├── nav-projects.tsx
+│   │   │   ├── nav-secondary.tsx
+│   │   │   └── nav-user.tsx
 │   │   ├── pages
 │   │   │   ├── HistoryPage.tsx
 │   │   │   ├── MetricsPage.tsx
@@ -103,15 +104,7 @@ Please eidt this file when you change anything in this structure.
 │   │   │   └── VoiceRulesPage.tsx
 │   │   └── ui
 │   │       ├── ActionCard.tsx
-│   │       ├── ConfidencePill.tsx
-│   │       ├── KeyMetricCard.tsx
-│   │       ├── LineGraph.tsx
-│   │       ├── PieChart.tsx
-│   │       └── Tooltip.tsx
-│   ├── lib
-│   │   ├── auth.ts
-│   │   ├── calendarService.ts
-│   │   ├── contextEngine.ts
+
 │   │   ├── gmail.ts
 │   │   ├── gmailPushService.ts
 │   │   ├── llm.ts
@@ -129,15 +122,18 @@ Please eidt this file when you change anything in this structure.
 │   │   ├── distilledMasterPromptGenerator.md
 │   │   ├── finalToolContextGeneratorPrompt.md
 │   │   ├── incomingEmailScannerPrompt.md
+│   │   ├── interactionNetworkGeneratorPrompt.md
 │   │   ├── masterPromptUpdaterFromDistilled.md
 │   │   ├── masterStyleDerivationPrompt.md
 │   │   ├── replyGenerationPrompt.md
+│   │   ├── strategicRulebookGeneratorPrompt.md
 │   │   ├── styleAnalysisPrompt.md
 │   │   └── styleCompressorPrompt.md
 │   └── types
 │       ├── index.ts
 │       └── next-auth.d.ts
 ├── structure.txt
+├── tailwind.config.js
 ├── test-email.js
 ├── test-reply-generation.js
 ├── tsconfig.json

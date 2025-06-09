@@ -1,8 +1,7 @@
 import { LLMService } from './llm';
 import { CalendarService } from './calendarService';
-import { GmailService } from './gmail';
 import { prisma } from './prisma';
-import { ContextualInformation, IncomingEmailScannerOutput, FinalContextOutput } from '@/types';
+import { ContextualInformation, IncomingEmailScannerOutput } from '@/types';
 const parseMessyTime = require('parse-messy-time');
 
 export interface IncomingEmailData {
