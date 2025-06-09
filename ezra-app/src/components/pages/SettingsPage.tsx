@@ -108,7 +108,7 @@ export const SettingsPage: React.FC = () => {
           <div className="flex space-x-2">
             <Link
               href="/tools/test-email"
-              className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded shadow-sm"
+              className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded shadow-sm cursor-pointer"
             >
               <Send size={14} className="mr-1" />
               Send Test Email

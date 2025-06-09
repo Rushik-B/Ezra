@@ -333,247 +333,245 @@ export const VoiceRulesPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="relative w-12 h-12 mx-auto mb-6">
-            <div className="w-12 h-12 border-2 border-slate-700 border-t-indigo-400 rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
           </div>
-          <p className="text-lg font-medium text-slate-300">Loading AI configuration...</p>
-          <p className="text-sm text-slate-500 mt-2">Initializing neural pathways</p>
+          <p className="text-lg font-medium text-gray-700">Loading AI configuration...</p>
+          <p className="text-sm text-gray-500 mt-2">Initializing neural pathways</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 p-8">
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
-          <div className="flex-1 mb-6 lg:mb-0">
-            <h1 className="text-3xl font-semibold text-white mb-2 flex items-center">
-              <Brain className="w-8 h-8 mr-3 text-blue-400" />
-              Voice and Rules Configuration
-            </h1>
-            <p className="text-slate-400 max-w-2xl leading-relaxed">
-              Configure your AI assistant's personality, behavior, and response patterns. Train it to respond like you.
-            </p>
-          </div>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
+        <div className="flex-1 mb-6 lg:mb-0">
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2 flex items-center">
+            <Brain className="w-8 h-8 mr-3 text-blue-600" />
+            Voice and Rules Configuration
+          </h1>
+          <p className="text-gray-600 max-w-2xl leading-relaxed">
+            Configure your AI assistant's personality, behavior, and response patterns. Train it to respond like you.
+          </p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Main Editor - Takes up 3/4 of space */}
-          <div className="xl:col-span-3 space-y-6">
-            {/* Prompt Editor - Much larger */}
-            <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-8 h-[calc(100vh-200px)]">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                    <Wand2 className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      Master Prompt {isDefault && <span className="text-sm text-slate-400">(Default)</span>}
-                    </h3>
-                    {currentPrompt?.isGenerated && (
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-sm text-blue-400">
-                          AI-Generated
-                        </span>
-                      </div>
-                    )}
-                  </div>
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        {/* Main Editor - Takes up 3/4 of space */}
+        <div className="xl:col-span-3 space-y-6">
+          {/* Prompt Editor - Much larger */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 h-[calc(100vh-200px)] shadow-elegant">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Wand2 className="w-5 h-5 text-blue-600" />
                 </div>
-                <div className="flex items-center space-x-2">
-                  {currentPrompt && !isDefault && (
-                    <span className="text-sm text-slate-400">
-                      v{currentPrompt.version}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Master Prompt {isDefault && <span className="text-sm text-gray-500">(Default)</span>}
+                  </h3>
+                  {currentPrompt?.isGenerated && (
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span className="text-sm text-blue-600">
+                        AI-Generated
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                {currentPrompt && !isDefault && (
+                  <span className="text-sm text-gray-500">
+                    v{currentPrompt.version}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {currentPrompt?.isGenerated && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-center space-x-3 mb-2">
+                  <Bot className="w-5 h-5 text-blue-600" />
+                  <div className="font-medium text-blue-800">AI-Generated Master Prompt</div>
+                </div>
+                <div className="text-sm text-blue-700">
+                  This prompt was automatically generated by analyzing your email history. 
+                  You're editing a simplified version - changes will be intelligently applied to the full prompt.
+                  {currentPrompt.metadata?.emailsAnalyzed && (
+                    <span className="block mt-1">
+                      Based on {currentPrompt.metadata.emailsAnalyzed} sent emails.
                     </span>
                   )}
                 </div>
               </div>
+            )}
+            
+            <div className="flex flex-col h-[calc(100%-200px)]">
+              <textarea
+                value={editedPrompt}
+                onChange={(e) => setEditedPrompt(e.target.value)}
+                placeholder="Enter your AI's personality and behavior instructions here..."
+                className="flex-1 p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 placeholder-gray-500 font-mono text-sm leading-relaxed"
+              />
               
-              {currentPrompt?.isGenerated && (
-                <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <Bot className="w-5 h-5 text-blue-400" />
-                    <div className="font-medium text-blue-200">AI-Generated Master Prompt</div>
-                  </div>
-                  <div className="text-sm text-blue-300/80">
-                    This prompt was automatically generated by analyzing your email history. 
-                    You're editing a simplified version - changes will be intelligently applied to the full prompt.
-                    {currentPrompt.metadata?.emailsAnalyzed && (
-                      <span className="block mt-1">
-                        Based on {currentPrompt.metadata.emailsAnalyzed} sent emails.
-                      </span>
-                    )}
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="text-sm text-red-700">
+                    {error}
                   </div>
                 </div>
               )}
               
-              <div className="flex flex-col h-[calc(100%-200px)]">
-                <textarea
-                  value={editedPrompt}
-                  onChange={(e) => setEditedPrompt(e.target.value)}
-                  placeholder="Enter your AI's personality and behavior instructions here..."
-                  className="flex-1 p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl resize-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-slate-400 font-mono text-sm leading-relaxed"
-                />
-                
-                {error && (
-                  <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <div className="text-sm text-red-300">
-                      {error}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="text-sm text-slate-400">
-                    {editedPrompt.length} characters
-                    {currentPrompt?.isGenerated && (
-                      <span className="ml-2 text-blue-400">
-                        • Editing simplified version
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={savePrompt}
-                    disabled={isSaving || !editedPrompt.trim()}
-                    className="px-6 py-3 bg-emerald-500/80 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium"
-                  >
-                    <Save size={16} className="mr-2" />
-                    {isSaving ? 'Saving...' : currentPrompt?.isGenerated ? 'Apply Changes' : 'Save Prompt'}
-                  </button>
+              <div className="mt-6 flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  {editedPrompt.length} characters
+                  {currentPrompt?.isGenerated && (
+                    <span className="ml-2 text-blue-600">
+                      • Editing simplified version
+                    </span>
+                  )}
                 </div>
+                <button
+                  onClick={savePrompt}
+                  disabled={isSaving || !editedPrompt.trim()}
+                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium shadow-elegant cursor-pointer"
+                >
+                  <Save size={16} className="mr-2" />
+                  {isSaving ? 'Saving...' : currentPrompt?.isGenerated ? 'Apply Changes' : 'Save Prompt'}
+                </button>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Sidebar - Takes up 1/4 of space */}
-          <div className="space-y-6">
-            {/* Test Environment */}
-            <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                    <TestTube className="w-4 h-4 text-blue-400" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-white">
-                    Test AI Response
-                  </h3>
+        {/* Sidebar - Takes up 1/4 of space */}
+        <div className="space-y-6">
+          {/* Test Environment */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-elegant">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <TestTube className="w-4 h-4 text-blue-600" />
                 </div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Test AI Response
+                </h3>
+              </div>
+            </div>
+            
+            <p className="text-xs text-gray-600 mb-4">
+              Test how your AI will respond to different emails.
+            </p>
+
+            {/* Test Email Form */}
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  From
+                </label>
+                <input
+                  type="email"
+                  value={customEmail.from}
+                  onChange={(e) => setCustomEmail({ ...customEmail, from: e.target.value })}
+                  placeholder="boss@company.com"
+                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs"
+                />
               </div>
               
-              <p className="text-xs text-slate-400 mb-4">
-                Test how your AI will respond to different emails.
-              </p>
-
-              {/* Test Email Form */}
-              <div className="space-y-4 mb-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    From
-                  </label>
-                  <input
-                    type="email"
-                    value={customEmail.from}
-                    onChange={(e) => setCustomEmail({ ...customEmail, from: e.target.value })}
-                    placeholder="boss@company.com"
-                    className="w-full p-2 bg-slate-900/50 border border-slate-600/50 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white text-xs"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Subject
-                  </label>
-                  <input
-                    type="text"
-                    value={customEmail.subject}
-                    onChange={(e) => setCustomEmail({ ...customEmail, subject: e.target.value })}
-                    placeholder="Project Update"
-                    className="w-full p-2 bg-slate-900/50 border border-slate-600/50 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white text-xs"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Email Body
-                  </label>
-                  <textarea
-                    value={customEmail.body}
-                    onChange={(e) => setCustomEmail({ ...customEmail, body: e.target.value })}
-                    placeholder="Enter email content..."
-                    rows={4}
-                    className="w-full p-2 bg-slate-900/50 border border-slate-600/50 rounded-lg focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white text-xs resize-none leading-relaxed"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={customEmail.subject}
+                  onChange={(e) => setCustomEmail({ ...customEmail, subject: e.target.value })}
+                  placeholder="Project Update"
+                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs"
+                />
               </div>
-
-              <div className="flex space-x-2 mb-4">
-                <button
-                  onClick={loadSampleEmails}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg transition-colors"
-                >
-                  Load Sample
-                </button>
-                <button
-                  onClick={testReplyGeneration}
-                  disabled={isTestingReply || !customEmail.from.trim() || !customEmail.subject.trim() || !customEmail.body.trim()}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-blue-500/80 hover:bg-blue-500 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-                >
-                  <Play size={12} className="mr-1" />
-                  {isTestingReply ? 'Testing...' : 'Test'}
-                </button>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Email Body
+                </label>
+                <textarea
+                  value={customEmail.body}
+                  onChange={(e) => setCustomEmail({ ...customEmail, body: e.target.value })}
+                  placeholder="Enter email content..."
+                  rows={4}
+                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs resize-none leading-relaxed"
+                />
               </div>
-
-              {testError && (
-                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <div className="text-xs text-red-300">
-                    {testError}
-                  </div>
-                </div>
-              )}
-
-              {testResult && (
-                <div className="mt-4 space-y-4">
-                  <div className="p-3 bg-slate-900/30 border border-slate-700/30 rounded-lg">
-                    <h4 className="text-xs font-medium text-slate-300 mb-2 flex items-center">
-                      <Eye size={12} className="mr-1" />
-                      Test Email
-                    </h4>
-                    <div className="text-xs space-y-1 font-mono">
-                      <div><span className="text-slate-400">From:</span> <span className="text-white">{testResult.testEmail.from}</span></div>
-                      <div><span className="text-slate-400">Subject:</span> <span className="text-white">{testResult.testEmail.subject}</span></div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-lg">
-                    <h4 className="text-xs font-medium text-emerald-200 mb-2 flex items-center">
-                      <Zap size={12} className="mr-1" />
-                      AI Reply
-                    </h4>
-                    <div className="text-xs text-emerald-100 bg-slate-950/30 p-2 rounded border border-emerald-500/20 font-mono leading-relaxed max-h-32 overflow-y-auto">
-                      {testResult.generatedReply.reply}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Tips */}
-            <div className="bg-gradient-to-br from-blue-500/10 to-slate-500/10 border border-blue-500/20 rounded-2xl p-4">
-              <h4 className="text-xs font-medium text-blue-200 mb-2 flex items-center">
-                <Sparkles size={12} className="mr-1" />
-                Configuration Tips
-              </h4>
-              <ul className="space-y-1 text-xs text-blue-300/80">
-                <li>• Be specific about tone and style</li>
-                <li>• Include response examples</li>
-                <li>• Test with different scenarios</li>
-                <li>• Use "Load Sample" for quick tests</li>
-              </ul>
+            <div className="flex space-x-2 mb-4">
+              <button
+                onClick={loadSampleEmails}
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+              >
+                Load Sample
+              </button>
+              <button
+                onClick={testReplyGeneration}
+                disabled={isTestingReply || !customEmail.from.trim() || !customEmail.subject.trim() || !customEmail.body.trim()}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center shadow-elegant cursor-pointer"
+              >
+                <Play size={12} className="mr-1" />
+                {isTestingReply ? 'Testing...' : 'Test'}
+              </button>
             </div>
+
+            {testError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="text-xs text-red-700">
+                  {testError}
+                </div>
+              </div>
+            )}
+
+            {testResult && (
+              <div className="mt-4 space-y-4">
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                  <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center">
+                    <Eye size={12} className="mr-1" />
+                    Test Email
+                  </h4>
+                  <div className="text-xs space-y-1 font-mono">
+                    <div><span className="text-gray-500">From:</span> <span className="text-gray-900">{testResult.testEmail.from}</span></div>
+                    <div><span className="text-gray-500">Subject:</span> <span className="text-gray-900">{testResult.testEmail.subject}</span></div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg">
+                  <h4 className="text-xs font-medium text-emerald-700 mb-2 flex items-center">
+                    <Zap size={12} className="mr-1" />
+                    AI Reply
+                  </h4>
+                  <div className="text-xs text-emerald-800 bg-white p-2 rounded border border-emerald-200 font-mono leading-relaxed max-h-32 overflow-y-auto">
+                    {testResult.generatedReply.reply}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Tips */}
+          <div className="bg-gradient-to-br from-blue-50 to-gray-50 border border-blue-200 rounded-2xl p-4">
+            <h4 className="text-xs font-medium text-blue-800 mb-2 flex items-center">
+              <Sparkles size={12} className="mr-1" />
+              Configuration Tips
+            </h4>
+            <ul className="space-y-1 text-xs text-blue-700">
+              <li>• Be specific about tone and style</li>
+              <li>• Include response examples</li>
+              <li>• Test with different scenarios</li>
+              <li>• Use "Load Sample" for quick tests</li>
+            </ul>
           </div>
         </div>
       </div>
