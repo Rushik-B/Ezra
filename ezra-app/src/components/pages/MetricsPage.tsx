@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, TrendingUp, Activity, Zap, Target, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { BarChart3, TrendingUp, Activity, Target, Clock } from 'lucide-react';
 
 export const MetricsPage: React.FC = () => {
   const [timeRange, setTimeRange] = useState('7d');
@@ -27,7 +27,7 @@ export const MetricsPage: React.FC = () => {
               Performance Analytics
             </h1>
             <p className="text-gray-600 max-w-2xl leading-relaxed">
-              Comprehensive insights into your AI assistant's performance and impact
+              Comprehensive insights into your AI assistant&apos;s performance and impact
             </p>
           </div>
           
@@ -231,7 +231,7 @@ export const MetricsPage: React.FC = () => {
             Coming Soon 👀
           </p>
           <p className="text-sm text-gray-500">
-            We're building powerful insights and analytics to help you understand your AI's performance.
+            We&apos;re building powerful insights and analytics to help you understand your AI&apos;s performance.
           </p>
         </div>
       </div>

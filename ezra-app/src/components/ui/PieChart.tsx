@@ -9,10 +9,8 @@ export const PieChart: React.FC<PieChartProps> = ({ data, colors }) => {
   const total = Object.values(data).reduce((acc, val) => acc + val, 0);
   if (total === 0) return <p className="text-sm text-gray-500 dark:text-gray-400">No data for pie chart.</p>;
 
-  let cumulativePercent = 0;
   const segments = Object.entries(data).map(([key, value]) => {
     const percent = (value / total) * 100;
-    cumulativePercent += percent;
     return { key, percent, color: colors[key] };
   });
 

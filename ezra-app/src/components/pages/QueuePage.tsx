@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, Clock, Edit3, Mail, X, Send, Trash2, MessageSquare, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Clock, Edit3, Mail, X, Send, Trash2, MessageSquare, CheckCircle2, ArrowRight } from 'lucide-react';
 import { QueueItem } from '@/types';
 
 export const QueuePage: React.FC = () => {

@@ -2,6 +2,7 @@
 ├── GMAIL_PUSH_SETUP.md
 ├── README.md
 ├── eslint.config.mjs
+├── example-master-prompt.md
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package-lock.json
@@ -12,6 +13,10 @@
 │   │   ├── 20250606224835_add_generated_reply
 │   │   │   └── migration.sql
 │   │   ├── 20250606225402_add_history_id_to_settings
+│   │   │   └── migration.sql
+│   │   ├── 20250606233445_add_action_history_table
+│   │   │   └── migration.sql
+│   │   ├── 20250608214015_add_labels_system
 │   │   │   └── migration.sql
 │   │   └── migration_lock.toml
 │   └── schema.prisma
@@ -24,6 +29,8 @@
 ├── src
 │   ├── app
 │   │   ├── api
+│   │   │   ├── action-history
+│   │   │   │   └── route.ts
 │   │   │   ├── auth
 │   │   │   │   └── [...nextauth]
 │   │   │   │       └── route.ts
@@ -72,8 +79,13 @@
 │   │   ├── EzraApp.tsx
 │   │   ├── SessionProvider.tsx
 │   │   ├── layout
-│   │   │   ├── LeftNav.tsx
-│   │   │   └── TopBar.tsx
+│   │   │   ├── TopBar.tsx
+│   │   │   └── app-sidebar.tsx
+│   │   ├── navbar-components
+│   │   │   ├── nav-main.tsx
+│   │   │   ├── nav-projects.tsx
+│   │   │   ├── nav-secondary.tsx
+│   │   │   └── nav-user.tsx
 │   │   ├── pages
 │   │   │   ├── HistoryPage.tsx
 │   │   │   ├── MetricsPage.tsx
@@ -87,8 +99,21 @@
 │   │       ├── KeyMetricCard.tsx
 │   │       ├── LineGraph.tsx
 │   │       ├── PieChart.tsx
-│   │       └── Tooltip.tsx
+│   │       ├── Tooltip.tsx
+│   │       └── sidebar
+│   │           ├── avatar.tsx
+│   │           ├── breadcrumb.tsx
+│   │           ├── button.tsx
+│   │           ├── collapsible.tsx
+│   │           ├── dropdown-menu.tsx
+│   │           ├── input.tsx
+│   │           ├── separator.tsx
+│   │           ├── sheet.tsx
+│   │           ├── sidebar.tsx
+│   │           ├── skeleton.tsx
+│   │           └── tooltip.tsx
 │   ├── hooks
+│   │   └── use-mobile.ts
 │   ├── lib
 │   │   ├── auth.ts
 │   │   ├── calendarService.ts
@@ -108,15 +133,18 @@
 │   │   ├── distilledMasterPromptGenerator.md
 │   │   ├── finalToolContextGeneratorPrompt.md
 │   │   ├── incomingEmailScannerPrompt.md
+│   │   ├── interactionNetworkGeneratorPrompt.md
 │   │   ├── masterPromptUpdaterFromDistilled.md
 │   │   ├── masterStyleDerivationPrompt.md
 │   │   ├── replyGenerationPrompt.md
+│   │   ├── strategicRulebookGeneratorPrompt.md
 │   │   ├── styleAnalysisPrompt.md
 │   │   └── styleCompressorPrompt.md
 │   └── types
 │       ├── index.ts
 │       └── next-auth.d.ts
 ├── structure.txt
+├── tailwind.config.js
 ├── test-email.js
 ├── test-reply-generation.js
 ├── tsconfig.json

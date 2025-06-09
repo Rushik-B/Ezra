@@ -2,8 +2,8 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { getStyleAnalysisPrompt, getReplyGenerationPrompt, readPromptFile } from './prompts';
-import { IncomingEmailScannerOutput, FinalContextOutput } from '@/types';
-import { encoding_for_model } from 'tiktoken';
+import { IncomingEmailScannerOutput } from '@/types';
+import { encoding_for_model, type Tiktoken } from 'tiktoken';
 
 // Global token tracking interface
 interface TokenTracker {
@@ -18,6 +18,7 @@ interface TokenTracker {
 }
 
 declare global {
+  // eslint-disable-next-line no-var
   var tokenTracker: TokenTracker | undefined;
 }
 
@@ -49,8 +50,8 @@ export class LLMService {
   private model: ChatGoogleGenerativeAI;
   private liteModel: ChatGoogleGenerativeAI;
   private advancedModel: ChatGoogleGenerativeAI;
-  private tokenizer: any;
-  private requestQueue: Array<() => Promise<any>> = [];
+  private tokenizer: Tiktoken;
+  private requestQueue: Array<() => Promise<unknown>> = [];
   private isProcessingQueue: boolean = false;
   private lastRequestTime: number = 0;
   private readonly MIN_REQUEST_INTERVAL = 4000; // 4 seconds between requests for free tier
@@ -156,9 +157,9 @@ export class LLMService {
     for (let attempt = 1; attempt <= retries + 1; attempt++) {
       try {
         return await requestFn();
-      } catch (error: any) {
-        const is503Error = error.message?.includes('503') || error.message?.includes('overloaded');
-        const is429Error = error.message?.includes('429') || error.message?.includes('rate limit');
+      } catch (error: unknown) {
+        const is503Error = error instanceof Error && (error.message?.includes('503') || error.message?.includes('overloaded'));
+        const is429Error = error instanceof Error && (error.message?.includes('429') || error.message?.includes('rate limit'));
         
         if ((is503Error || is429Error) && attempt <= retries) {
           const backoffDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Exponential backoff, max 30s

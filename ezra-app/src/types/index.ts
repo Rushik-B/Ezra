@@ -26,7 +26,7 @@ export interface QueueItem {
     subject?: string;
     body?: string;
     receivedAt?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

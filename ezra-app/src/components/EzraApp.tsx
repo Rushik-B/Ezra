@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { PageType } from '@/types';
 import { TopBar } from '@/components/layout/TopBar';
 import { AppSidebar } from '@/components/layout/app-sidebar';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar/sidebar';
 import { QueuePage } from '@/components/pages/QueuePage';
 import { HistoryPage } from '@/components/pages/HistoryPage';
 import { MetricsPage } from '@/components/pages/MetricsPage';
