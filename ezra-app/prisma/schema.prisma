@@ -21,6 +21,8 @@ model User {
   autonomyRules  AutonomyRule[]
   masterPrompts  MasterPrompt[]
   actionHistory  ActionHistory[]
+  interactionNetworks InteractionNetwork[]
+  strategicRulebooks  StrategicRulebook[]
 }
 
 model OAuthAccount {
@@ -35,6 +37,7 @@ model OAuthAccount {
   tokenType            String?
   expiresAt            Int?
   createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@unique([provider, providerAccountId])
 }
@@ -141,6 +144,30 @@ model MasterPrompt {
   metadata   Json?     // Store generation details like emailsAnalyzed, confidence, etc.
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+// NEW - Personalized Operating System: Interaction Network
+model InteractionNetwork {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  content   Json // Stores the structured JSON for contacts and functions
+  version   Int      @default(1)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// NEW - Personalized Operating System: Strategic Rulebook
+model StrategicRulebook {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  content   Json // Stores the IF/THEN rules as structured JSON
+  version   Int      @default(1)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ActionHistory table to track all user actions and AI decisions for the History page

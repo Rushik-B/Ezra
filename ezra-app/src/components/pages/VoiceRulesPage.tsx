@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Wand2, Brain, Sparkles, Eye, Play, Save, History, Bot, Zap, TestTube } from 'lucide-react';
+import { Wand2, Brain, Sparkles, Eye, Play, Save, History, Bot, Zap, TestTube, Users, ListChecks } from 'lucide-react';
 
 interface MasterPrompt {
   id: string;
@@ -13,6 +13,20 @@ interface MasterPrompt {
   metadata?: any;
   createdAt: string;
   updatedAt: string;
+}
+
+interface InteractionNetwork {
+  id: string;
+  content: object;
+  version: number;
+  isActive: boolean;
+}
+
+interface StrategicRulebook {
+  id: string;
+  content: object;
+  version: number;
+  isActive: boolean;
 }
 
 interface TestResult {
@@ -44,11 +58,25 @@ interface CustomEmailForm {
   body: string;
 }
 
+// Tab definitions
+const tabs = [
+  { id: 'master-prompt', label: 'Master Prompt', icon: Wand2, color: 'blue' },
+  { id: 'interaction-network', label: 'Interaction Network', icon: Users, color: 'purple' },
+  { id: 'strategic-rulebook', label: 'Strategic Rulebook', icon: ListChecks, color: 'green' },
+] as const;
+
+type TabId = typeof tabs[number]['id'];
+
 export const VoiceRulesPage: React.FC = () => {
   const { data: session } = useSession();
+  const [activeTab, setActiveTab] = useState<TabId>('master-prompt');
   const [currentPrompt, setCurrentPrompt] = useState<MasterPrompt | null>(null);
+  const [interactionNetwork, setInteractionNetwork] = useState<InteractionNetwork | null>(null);
+  const [strategicRulebook, setStrategicRulebook] = useState<StrategicRulebook | null>(null);
   const [promptHistory, setPromptHistory] = useState<MasterPrompt[]>([]);
   const [editedPrompt, setEditedPrompt] = useState('');
+  const [editedNetwork, setEditedNetwork] = useState('');
+  const [editedRulebook, setEditedRulebook] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,6 +114,8 @@ export const VoiceRulesPage: React.FC = () => {
       fetchCurrentPrompt();
       fetchPromptHistory();
       checkGenerationEligibility();
+      fetchInteractionNetwork();
+      fetchStrategicRulebook();
     }
   }, [session]);
 
@@ -105,6 +135,34 @@ export const VoiceRulesPage: React.FC = () => {
       }
     } catch (_err) {
       setError('Failed to fetch current prompt');
+    }
+  };
+
+  const fetchInteractionNetwork = async () => {
+    try {
+      const response = await fetch('/api/pos/interaction-network');
+      if (response.ok) {
+        const data = await response.json();
+        setInteractionNetwork(data);
+        setEditedNetwork(JSON.stringify(data.content, null, 2));
+      }
+    } catch (_err) {
+      console.log('No interaction network found, will create empty one');
+      setEditedNetwork(JSON.stringify({ contacts: [] }, null, 2));
+    }
+  };
+
+  const fetchStrategicRulebook = async () => {
+    try {
+      const response = await fetch('/api/pos/strategic-rulebook');
+      if (response.ok) {
+        const data = await response.json();
+        setStrategicRulebook(data);
+        setEditedRulebook(JSON.stringify(data.content, null, 2));
+      }
+    } catch (_err) {
+      console.log('No strategic rulebook found, will create empty one');
+      setEditedRulebook(JSON.stringify({ rules: [] }, null, 2));
     }
   };
 
@@ -182,6 +240,50 @@ export const VoiceRulesPage: React.FC = () => {
     } catch (err) {
       setError('Failed to save prompt');
       console.error('Error saving prompt:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveInteractionNetwork = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/pos/interaction-network', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: JSON.parse(editedNetwork) })
+      });
+      if (response.ok) {
+        fetchInteractionNetwork();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to save Interaction Network');
+      }
+    } catch (err) {
+      setError('Failed to save Interaction Network. Invalid JSON format?');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveStrategicRulebook = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/pos/strategic-rulebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: JSON.parse(editedRulebook) })
+      });
+      if (response.ok) {
+        fetchStrategicRulebook();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to save Strategic Rulebook');
+      }
+    } catch (err) {
+      setError('Failed to save Strategic Rulebook. Invalid JSON format?');
     } finally {
       setSaving(false);
     }
@@ -331,6 +433,25 @@ export const VoiceRulesPage: React.FC = () => {
     }
   };
 
+  const getTabColorClasses = (tabId: TabId, isActive: boolean) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return '';
+    
+    const colors = {
+      blue: isActive 
+        ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' 
+        : 'text-slate-400 hover:text-blue-300 hover:bg-blue-500/10',
+      purple: isActive 
+        ? 'bg-purple-500/20 border-purple-500/50 text-purple-300' 
+        : 'text-slate-400 hover:text-purple-300 hover:bg-purple-500/10',
+      green: isActive 
+        ? 'bg-green-500/20 border-green-500/50 text-green-300' 
+        : 'text-slate-400 hover:text-green-300 hover:bg-green-500/10'
+    };
+    
+    return colors[tab.color];
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -346,8 +467,8 @@ export const VoiceRulesPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 p-8">
-      <div className="space-y-8">
+    <div className="min-h-screen bg-slate-950 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
           <div className="flex-1 mb-6 lg:mb-0">
@@ -361,95 +482,226 @@ export const VoiceRulesPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Main Editor - Takes up 3/4 of space */}
-          <div className="xl:col-span-3 space-y-6">
-            {/* Prompt Editor - Much larger */}
-            <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-8 h-[calc(100vh-200px)]">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                    <Wand2 className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      Master Prompt {isDefault && <span className="text-sm text-slate-400">(Default)</span>}
-                    </h3>
-                    {currentPrompt?.isGenerated && (
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-sm text-blue-400">
-                          AI-Generated
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          {/* Main Content - 3/4 width */}
+          <div className="xl:col-span-3">
+            {/* Tab Navigation */}
+            <div className="flex space-x-1 mb-6 bg-slate-800/30 p-1 rounded-2xl">
+              {tabs.map((tab) => {
+                const IconComponent = tab.icon;
+                const isActive = activeTab === tab.id;
+                
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center space-x-2 px-4 py-3 rounded-xl transition-all duration-200 flex-1 justify-center border ${getTabColorClasses(tab.id, isActive)}`}
+                  >
+                    <IconComponent className="w-4 h-4" />
+                    <span className="font-medium">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tab Content */}
+            <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-8 h-[calc(100vh-300px)]">
+              {/* Master Prompt Tab */}
+              {activeTab === 'master-prompt' && (
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                        <Wand2 className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          Master Prompt {isDefault && <span className="text-sm text-slate-400">(Default)</span>}
+                        </h3>
+                        {currentPrompt?.isGenerated && (
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="text-sm text-blue-400">
+                              AI-Generated
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {currentPrompt && !isDefault && (
+                        <span className="text-sm text-slate-400">
+                          v{currentPrompt.version}
                         </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {currentPrompt?.isGenerated && (
+                    <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Bot className="w-5 h-5 text-blue-400" />
+                        <div className="font-medium text-blue-200">AI-Generated Master Prompt</div>
+                      </div>
+                      <div className="text-sm text-blue-300/80">
+                        This prompt was automatically generated by analyzing your email history. 
+                        You're editing a simplified version - changes will be intelligently applied to the full prompt.
+                        {currentPrompt.metadata?.emailsAnalyzed && (
+                          <span className="block mt-1">
+                            Based on {currentPrompt.metadata.emailsAnalyzed} sent emails.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col flex-1">
+                    <textarea
+                      value={editedPrompt}
+                      onChange={(e) => setEditedPrompt(e.target.value)}
+                      placeholder="Enter your AI's personality and behavior instructions here..."
+                      className="flex-1 p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl resize-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-slate-400 font-mono text-sm leading-relaxed"
+                    />
+                    
+                    {error && (
+                      <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <div className="text-sm text-red-300">
+                          {error}
+                        </div>
                       </div>
                     )}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {currentPrompt && !isDefault && (
-                    <span className="text-sm text-slate-400">
-                      v{currentPrompt.version}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {currentPrompt?.isGenerated && (
-                <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <Bot className="w-5 h-5 text-blue-400" />
-                    <div className="font-medium text-blue-200">AI-Generated Master Prompt</div>
-                  </div>
-                  <div className="text-sm text-blue-300/80">
-                    This prompt was automatically generated by analyzing your email history. 
-                    You're editing a simplified version - changes will be intelligently applied to the full prompt.
-                    {currentPrompt.metadata?.emailsAnalyzed && (
-                      <span className="block mt-1">
-                        Based on {currentPrompt.metadata.emailsAnalyzed} sent emails.
-                      </span>
-                    )}
+                    
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="text-sm text-slate-400">
+                        {editedPrompt.length} characters
+                        {currentPrompt?.isGenerated && (
+                          <span className="ml-2 text-blue-400">
+                            • Editing simplified version
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={savePrompt}
+                        disabled={isSaving || !editedPrompt.trim()}
+                        className="px-6 py-3 bg-emerald-500/80 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium"
+                      >
+                        <Save size={16} className="mr-2" />
+                        {isSaving ? 'Saving...' : currentPrompt?.isGenerated ? 'Apply Changes' : 'Save Prompt'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
-              
-              <div className="flex flex-col h-[calc(100%-200px)]">
-                <textarea
-                  value={editedPrompt}
-                  onChange={(e) => setEditedPrompt(e.target.value)}
-                  placeholder="Enter your AI's personality and behavior instructions here..."
-                  className="flex-1 p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl resize-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 text-white placeholder-slate-400 font-mono text-sm leading-relaxed"
-                />
-                
-                {error && (
-                  <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <div className="text-sm text-red-300">
-                      {error}
+
+              {/* Interaction Network Tab */}
+              {activeTab === 'interaction-network' && (
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                        <Users className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">Interaction Network</h3>
+                        <p className="text-sm text-slate-400">Define your professional relationships and their functions</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-                
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="text-sm text-slate-400">
-                    {editedPrompt.length} characters
-                    {currentPrompt?.isGenerated && (
-                      <span className="ml-2 text-blue-400">
-                        • Editing simplified version
+                    {interactionNetwork && (
+                      <span className="text-sm text-slate-400">
+                        v{interactionNetwork.version}
                       </span>
                     )}
                   </div>
-                  <button
-                    onClick={savePrompt}
-                    disabled={isSaving || !editedPrompt.trim()}
-                    className="px-6 py-3 bg-emerald-500/80 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium"
-                  >
-                    <Save size={16} className="mr-2" />
-                    {isSaving ? 'Saving...' : currentPrompt?.isGenerated ? 'Apply Changes' : 'Save Prompt'}
-                  </button>
+                  
+                  <div className="flex flex-col flex-1">
+                    <textarea
+                      value={editedNetwork}
+                      onChange={(e) => setEditedNetwork(e.target.value)}
+                      placeholder={`{
+  "contacts": [
+    {
+      "email": "colleague@company.com",
+      "name": "John Doe",
+      "role": "Project Manager",
+      "functions": ["PROJECT_UPDATES", "TASK_COORDINATION"]
+    }
+  ]
+}`}
+                      className="flex-1 p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl resize-none focus:ring-2 focus:ring-purple-400/50 focus:border-purple-400/50 text-white placeholder-slate-400 font-mono text-sm leading-relaxed"
+                    />
+                    
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="text-sm text-slate-400">
+                        JSON format - Define contacts and their business functions
+                      </div>
+                      <button
+                        onClick={saveInteractionNetwork}
+                        disabled={isSaving || !editedNetwork.trim()}
+                        className="px-6 py-3 bg-purple-500/80 hover:bg-purple-500 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium"
+                      >
+                        <Save size={16} className="mr-2" />
+                        {isSaving ? 'Saving...' : 'Save Network'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Strategic Rulebook Tab */}
+              {activeTab === 'strategic-rulebook' && (
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-500/20 rounded-xl flex items-center justify-center">
+                        <ListChecks className="w-5 h-5 text-green-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">Strategic Rulebook</h3>
+                        <p className="text-sm text-slate-400">Define rules and workflows for different situations</p>
+                      </div>
+                    </div>
+                    {strategicRulebook && (
+                      <span className="text-sm text-slate-400">
+                        v{strategicRulebook.version}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col flex-1">
+                    <textarea
+                      value={editedRulebook}
+                      onChange={(e) => setEditedRulebook(e.target.value)}
+                      placeholder={`{
+  "rules": [
+    {
+      "if": "email contains scheduling request",
+      "then": "send calendar link and suggest 3 time slots",
+      "priority": "high"
+    }
+  ]
+}`}
+                      className="flex-1 p-4 bg-slate-900/50 border border-slate-600/50 rounded-xl resize-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 text-white placeholder-slate-400 font-mono text-sm leading-relaxed"
+                    />
+                    
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="text-sm text-slate-400">
+                        JSON format - Define IF/THEN rules for strategic decision making
+                      </div>
+                      <button
+                        onClick={saveStrategicRulebook}
+                        disabled={isSaving || !editedRulebook.trim()}
+                        className="px-6 py-3 bg-green-500/80 hover:bg-green-500 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium"
+                      >
+                        <Save size={16} className="mr-2" />
+                        {isSaving ? 'Saving...' : 'Save Rulebook'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Sidebar - Takes up 1/4 of space */}
+          {/* Sidebar - 1/4 width */}
           <div className="space-y-6">
             {/* Test Environment */}
             <div className="bg-slate-800/40 backdrop-blur-sm border border-slate-700/40 rounded-2xl p-6">
