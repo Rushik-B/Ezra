@@ -5,7 +5,7 @@ import { ShieldCheck, AlertTriangle, Clock, Edit3, Info, X, Minimize2, Maximize2
 import { QueueItem } from '@/types';
 import { timeSince } from '@/lib/utils';
 import { ConfidencePill } from './ConfidencePill';
-import { Tooltip } from './tooltip';
+import { Tooltip } from './Tooltip';
 
 interface ActionCardProps {
   item: QueueItem;
