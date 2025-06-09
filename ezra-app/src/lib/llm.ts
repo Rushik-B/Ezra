@@ -527,7 +527,9 @@ CRITICAL NOTES:
       body: string;
       date: Date;
     },
-    rawContextualInfo: string
+    rawContextualInfo: string,
+    interactionNetwork: object,
+    strategicRulebook: object
   ): Promise<string> {
     try {
       console.log('🧠 Synthesizing context into reply instructions...');
@@ -541,7 +543,9 @@ CRITICAL NOTES:
         .replace('{subject}', originalEmail.subject)
         .replace('{emailDate}', originalEmail.date.toISOString())
         .replace('{emailBody}', originalEmail.body)
-        .replace('{rawContextualInfo}', rawContextualInfo);
+        .replace('{rawContextualInfo}', rawContextualInfo)
+        .replace('{interactionNetwork}', JSON.stringify(interactionNetwork, null, 2))
+        .replace('{strategicRulebook}', JSON.stringify(strategicRulebook, null, 2));
 
       const systemMessage = "You are a Context Synthesizer that creates intelligent reply instructions from comprehensive contextual information.";
       const fullPrompt = systemMessage + "\n\n" + formattedPrompt;
@@ -566,6 +570,9 @@ CRITICAL NOTES:
       return `PRIMARY RESPONSE REQUIREMENTS:
 - Respond to "${originalEmail.subject}" from ${originalEmail.from}
 - Address the main points in their email
+
+STRATEGIC OVERLAY:
+- No strategic overlay available due to processing error.
 
 KEY CONTEXTUAL INSIGHTS TO INCLUDE:
 - Limited context available due to processing error

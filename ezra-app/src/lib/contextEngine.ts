@@ -68,9 +68,25 @@ export class ContextEngineService {
 
       // Step 6: Synthesize raw context into actionable reply instructions
       console.log('🧠 Step 6: Synthesizing context into reply instructions...');
+
+      // NEW: Fetch POS modules
+      const interactionNetwork = await prisma.interactionNetwork.findFirst({
+        where: { userId, isActive: true },
+        orderBy: { version: 'desc' },
+      });
+      const strategicRulebook = await prisma.strategicRulebook.findFirst({
+        where: { userId, isActive: true },
+        orderBy: { version: 'desc' },
+      });
+
+      console.log(`🤝 Interaction Network found: ${!!interactionNetwork}`);
+      console.log(`📜 Strategic Rulebook found: ${!!strategicRulebook}`);
+
       const replyInstructions = await this.llmService.invokeContextSynthesizer(
         incomingEmail,
-        rawContextualInfo
+        rawContextualInfo,
+        interactionNetwork?.content as object || {},
+        strategicRulebook?.content as object || {},
       );
 
 
