@@ -1,7 +1,3 @@
-This is the structure of the whole monorepo. Use this as context for the whole structure.
-
-Please eidt this file when you change anything in this structure.
-
 .
 ├── GMAIL_PUSH_SETUP.md
 ├── README.md
@@ -17,7 +13,13 @@ Please eidt this file when you change anything in this structure.
 │   │   ├── 20250606224835_add_generated_reply
 │   │   │   └── migration.sql
 │   │   ├── 20250606225402_add_history_id_to_settings
-
+│   │   │   └── migration.sql
+│   │   ├── 20250606233445_add_action_history_table
+│   │   │   └── migration.sql
+│   │   ├── 20250608214015_add_labels_system
+│   │   │   └── migration.sql
+│   │   ├── 20250609201759_add_pos_models
+│   │   │   └── migration.sql
 │   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public
@@ -47,10 +49,6 @@ Please eidt this file when you change anything in this structure.
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── webhook
 │   │   │   │       └── route.ts
-│   │   │   ├── labels
-│   │   │   │   ├── route.ts
-│   │   │   │   └── sync
-│   │   │   │       └── route.ts
 │   │   │   ├── master-prompt
 │   │   │   │   ├── activate
 │   │   │   │   │   └── route.ts
@@ -61,10 +59,10 @@ Please eidt this file when you change anything in this structure.
 │   │   │   │   ├── history
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
-│   │   │   ├── personalized-os
-│   │   │   │   ├── ensure
+│   │   │   ├── pos
+│   │   │   │   ├── interaction-network
 │   │   │   │   │   └── route.ts
-│   │   │   │   └── generate
+│   │   │   │   └── strategic-rulebook
 │   │   │   │       └── route.ts
 │   │   │   ├── queue
 │   │   │   │   ├── generate-draft
@@ -98,20 +96,41 @@ Please eidt this file when you change anything in this structure.
 │   │   ├── pages
 │   │   │   ├── HistoryPage.tsx
 │   │   │   ├── MetricsPage.tsx
+│   │   │   ├── OldVoiceRules.tsx
 │   │   │   ├── QueuePage.tsx
 │   │   │   ├── SettingsPage.tsx
 │   │   │   ├── TestEmailPage.tsx
 │   │   │   └── VoiceRulesPage.tsx
 │   │   └── ui
 │   │       ├── ActionCard.tsx
-
+│   │       ├── ConfidencePill.tsx
+│   │       ├── KeyMetricCard.tsx
+│   │       ├── LineGraph.tsx
+│   │       ├── PieChart.tsx
+│   │       ├── Tooltip.tsx
+│   │       └── sidebar
+│   │           ├── avatar.tsx
+│   │           ├── breadcrumb.tsx
+│   │           ├── button.tsx
+│   │           ├── collapsible.tsx
+│   │           ├── dropdown-menu.tsx
+│   │           ├── input.tsx
+│   │           ├── separator.tsx
+│   │           ├── sheet.tsx
+│   │           ├── sidebar.tsx
+│   │           ├── skeleton.tsx
+│   │           └── tooltip.tsx
+│   ├── hooks
+│   │   └── use-mobile.ts
+│   ├── lib
+│   │   ├── auth.ts
+│   │   ├── calendarService.ts
+│   │   ├── contextEngine.ts
 │   │   ├── gmail.ts
 │   │   ├── gmailPushService.ts
 │   │   ├── llm.ts
 │   │   ├── masterPromptGenerator.ts
-│   │   ├── migrationHelper.ts
 │   │   ├── mockData.tsx
-│   │   ├── personalizedOSService.ts
 │   │   ├── prisma.ts
 │   │   ├── prompts.ts
 │   │   ├── replyGenerator.ts
