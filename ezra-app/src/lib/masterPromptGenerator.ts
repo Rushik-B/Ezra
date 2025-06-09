@@ -10,6 +10,18 @@ export interface GeneratedMasterPrompt {
   confidence: number;
 }
 
+export interface GeneratedInteractionNetwork {
+  content: object;
+  emailsAnalyzed: number;
+  generatedAt: Date;
+}
+
+export interface GeneratedStrategicRulebook {
+  content: object;
+  emailsAnalyzed: number;
+  generatedAt: Date;
+}
+
 export class MasterPromptGeneratorService {
   private llmService: LLMService;
 
@@ -64,6 +76,70 @@ export class MasterPromptGeneratorService {
   }
 
   /**
+   * NEW: Generate a personalized Interaction Network for a user
+   */
+  async generateInteractionNetwork(userId: string): Promise<GeneratedInteractionNetwork> {
+    try {
+      console.log(`Starting Interaction Network generation for user: ${userId}`);
+      const sentEmails = await this.fetchUserSentEmails(userId, 500);
+      if (sentEmails.length === 0) {
+        throw new Error('No sent emails found for Interaction Network generation');
+      }
+      console.log(`🤝 Analyzing ${sentEmails.length} sent emails for Interaction Network`);
+      const emailCorpus = this.formatEmailsForAnalysis(sentEmails);
+
+      console.log('🧠 Generating Interaction Network...');
+      const promptTemplate = readPromptFile('interactionNetworkGeneratorPrompt.md');
+      const prompt = promptTemplate.replace('{userSentEmailCorpus}', emailCorpus);
+      const response = await this.llmService.generateText(prompt);
+      const content = JSON.parse(response.replace(/```json\n?|\n?```/g, '').trim());
+      
+      console.log('✅ Interaction Network generated');
+
+      return {
+        content,
+        emailsAnalyzed: sentEmails.length,
+        generatedAt: new Date(),
+      };
+    } catch (error) {
+      console.error('Error generating Interaction Network:', error);
+      throw new Error(`Failed to generate Interaction Network: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * NEW: Generate a personalized Strategic Rulebook for a user
+   */
+  async generateStrategicRulebook(userId: string): Promise<GeneratedStrategicRulebook> {
+    try {
+      console.log(`Starting Strategic Rulebook generation for user: ${userId}`);
+      const sentEmails = await this.fetchUserSentEmails(userId, 500);
+      if (sentEmails.length === 0) {
+        throw new Error('No sent emails found for Strategic Rulebook generation');
+      }
+      console.log(`📜 Analyzing ${sentEmails.length} sent emails for Strategic Rulebook`);
+      const emailCorpus = this.formatEmailsForAnalysis(sentEmails);
+
+      console.log('🧠 Generating Strategic Rulebook...');
+      const promptTemplate = readPromptFile('strategicRulebookGeneratorPrompt.md');
+      const prompt = promptTemplate.replace('{userSentEmailCorpus}', emailCorpus);
+      const response = await this.llmService.generateText(prompt);
+      const content = JSON.parse(response.replace(/```json\n?|\n?```/g, '').trim());
+
+      console.log('✅ Strategic Rulebook generated');
+
+      return {
+        content,
+        emailsAnalyzed: sentEmails.length,
+        generatedAt: new Date(),
+      };
+    } catch (error) {
+      console.error('Error generating Strategic Rulebook:', error);
+      throw new Error(`Failed to generate Strategic Rulebook: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
    * Generate and save Master Prompt for a user, deactivating previous ones
    */
   async generateAndSaveMasterPrompt(userId: string): Promise<{ id: string; version: number; confidence: number }> {
@@ -105,6 +181,10 @@ export class MasterPromptGeneratorService {
 
       console.log(`✅ Master Prompt v${nextVersion} saved for user ${userId}`);
 
+      // ALSO GENERATE AND SAVE THE OTHER POS COMPONENTS
+      await this.generateAndSaveInteractionNetwork(userId);
+      await this.generateAndSaveStrategicRulebook(userId);
+
       return {
         id: savedPrompt.id,
         version: savedPrompt.version,
@@ -113,6 +193,72 @@ export class MasterPromptGeneratorService {
 
     } catch (error) {
       console.error('Error generating and saving Master Prompt:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * NEW: Generate and save Interaction Network
+   */
+  async generateAndSaveInteractionNetwork(userId: string): Promise<any> {
+    try {
+      const network = await this.generateInteractionNetwork(userId);
+      const current = await prisma.interactionNetwork.findFirst({
+        where: { userId },
+        orderBy: { version: 'desc' }
+      });
+      const nextVersion = current ? current.version + 1 : 1;
+
+      await prisma.interactionNetwork.updateMany({
+        where: { userId },
+        data: { isActive: false }
+      });
+
+      const saved = await prisma.interactionNetwork.create({
+        data: {
+          userId,
+          content: network.content,
+          version: nextVersion,
+          isActive: true,
+        }
+      });
+      console.log(`✅ Interaction Network v${nextVersion} saved for user ${userId}`);
+      return saved;
+    } catch (error) {
+      console.error('Error generating and saving Interaction Network:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * NEW: Generate and save Strategic Rulebook
+   */
+  async generateAndSaveStrategicRulebook(userId: string): Promise<any> {
+    try {
+      const rulebook = await this.generateStrategicRulebook(userId);
+      const current = await prisma.strategicRulebook.findFirst({
+        where: { userId },
+        orderBy: { version: 'desc' }
+      });
+      const nextVersion = current ? current.version + 1 : 1;
+
+      await prisma.strategicRulebook.updateMany({
+        where: { userId },
+        data: { isActive: false }
+      });
+
+      const saved = await prisma.strategicRulebook.create({
+        data: {
+          userId,
+          content: rulebook.content,
+          version: nextVersion,
+          isActive: true,
+        }
+      });
+      console.log(`✅ Strategic Rulebook v${nextVersion} saved for user ${userId}`);
+      return saved;
+    } catch (error) {
+      console.error('Error generating and saving Strategic Rulebook:', error);
       throw error;
     }
   }
@@ -230,6 +376,9 @@ export class MasterPromptGeneratorService {
 
       if (existingPrompt) {
         console.log(`✅ User ${userId} already has master prompt v${existingPrompt.version}`);
+        // Also check for the other components
+        await this.ensureUserHasInteractionNetwork(userId);
+        await this.ensureUserHasStrategicRulebook(userId);
         return true;
       }
 
@@ -251,6 +400,40 @@ export class MasterPromptGeneratorService {
 
     } catch (error) {
       console.error(`❌ Error ensuring master prompt for user ${userId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * NEW: Check for and generate Interaction Network if missing
+   */
+  async ensureUserHasInteractionNetwork(userId: string): Promise<boolean> {
+    const existing = await prisma.interactionNetwork.findFirst({ where: { userId, isActive: true }});
+    if (existing) return true;
+    
+    console.log(`🤝 Interaction Network missing for user ${userId}, generating...`);
+    try {
+      await this.generateAndSaveInteractionNetwork(userId);
+      return true;
+    } catch(e) {
+      console.error(`❌ Error ensuring Interaction Network for user ${userId}:`, e);
+      return false;
+    }
+  }
+
+  /**
+   * NEW: Check for and generate Strategic Rulebook if missing
+   */
+  async ensureUserHasStrategicRulebook(userId: string): Promise<boolean> {
+    const existing = await prisma.strategicRulebook.findFirst({ where: { userId, isActive: true }});
+    if (existing) return true;
+
+    console.log(`📜 Strategic Rulebook missing for user ${userId}, generating...`);
+    try {
+      await this.generateAndSaveStrategicRulebook(userId);
+      return true;
+    } catch(e) {
+      console.error(`❌ Error ensuring Strategic Rulebook for user ${userId}:`, e);
       return false;
     }
   }

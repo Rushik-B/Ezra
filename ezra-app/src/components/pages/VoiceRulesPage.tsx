@@ -2,8 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Wand2, Brain, Sparkles, Eye, Play, Save, History, Bot, Zap, TestTube } from 'lucide-react';
+import {
+  Wand2,
+  Brain,
+  Sparkles,
+  Eye,
+  Play,
+  Save,
+  Bot,
+  Zap,
+  TestTube,
+  Users,
+  ListChecks,
+} from 'lucide-react';
 
+/* ------------------------------------------------------------------ */
+/*  Types                                                             */
+/* ------------------------------------------------------------------ */
 interface MasterPrompt {
   id: string;
   prompt: string;
@@ -13,6 +28,20 @@ interface MasterPrompt {
   metadata?: any;
   createdAt: string;
   updatedAt: string;
+}
+
+interface InteractionNetwork {
+  id: string;
+  content: object;
+  version: number;
+  isActive: boolean;
+}
+
+interface StrategicRulebook {
+  id: string;
+  content: object;
+  version: number;
+  isActive: boolean;
 }
 
 interface TestResult {
@@ -44,84 +73,127 @@ interface CustomEmailForm {
   body: string;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Tabs                                                              */
+/* ------------------------------------------------------------------ */
+const tabs = [
+  { id: 'master-prompt', label: 'Master Prompt', icon: Wand2, color: 'blue' },
+  { id: 'interaction-network', label: 'Interaction Network', icon: Users, color: 'purple' },
+  { id: 'strategic-rulebook', label: 'Strategic Rulebook', icon: ListChecks, color: 'green' },
+] as const;
+
+type TabId = typeof tabs[number]['id'];
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
 export const VoiceRulesPage: React.FC = () => {
   const { data: session } = useSession();
+
+  /* ---------------------------- state ---------------------------- */
+  const [activeTab, setActiveTab] = useState<TabId>('master-prompt');
+
+  // Master Prompt
   const [currentPrompt, setCurrentPrompt] = useState<MasterPrompt | null>(null);
   const [promptHistory, setPromptHistory] = useState<MasterPrompt[]>([]);
   const [editedPrompt, setEditedPrompt] = useState('');
+  const [isDefault, setIsDefault] = useState(false);
+
+  // Interaction Network
+  const [interactionNetwork, setInteractionNetwork] =
+    useState<InteractionNetwork | null>(null);
+  const [editedNetwork, setEditedNetwork] = useState('');
+
+  // Strategic Rulebook
+  const [strategicRulebook, setStrategicRulebook] =
+    useState<StrategicRulebook | null>(null);
+  const [editedRulebook, setEditedRulebook] = useState('');
+
+  // Misc UI
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDefault, setIsDefault] = useState(false);
-  
-  // Test reply generation state
+
+  // Test-reply generation
   const [isTestingReply, setIsTestingReply] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
-  
-  // Custom email form state
   const [customEmail, setCustomEmail] = useState<CustomEmailForm>({
     from: 'sara@starboard.ai',
     subject: 'Deployment update',
-    body: 'Hi all,\n\nQuick update - the maintenance window with Globex went smoothly.\n\nAlex\'s team completed the deployment at 12:28 AM PST. Validation steps were finalized shortly after, and we received confirmation from the Globex EU team that data integrity checks are passing on their end. No anomalies reported post-push.\n\nThanks everyone for the coordination and late-night support.\n\nBest,\nSara'
+    body: `Hi all,
+
+Quick update – the maintenance window with Globex went smoothly.
+
+Alex's team completed the deployment at 12:28 AM PST. Validation steps were finalized shortly after, and we received confirmation from the Globex EU team that data-integrity checks are passing on their end. No anomalies reported post-push.
+
+Thanks everyone for the coordination and late-night support.
+
+Best,
+Sara`,
   });
 
-  const [currentPromptInfo, setCurrentPromptInfo] = useState<{
-    version: number;
-    isDefault: boolean;
-    id?: string;
-  }>({ version: 0, isDefault: true });
-  const [generationEligibility, setGenerationEligibility] = useState<{
-    canGenerate: boolean;
-    emailCount: number;
-    minimumRequired: number;
-    message?: string;
-  } | null>(null);
-
-  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-
+  /* ------------------------- side effects ------------------------- */
   useEffect(() => {
-    if (session) {
-      fetchCurrentPrompt();
-      fetchPromptHistory();
-      checkGenerationEligibility();
-    }
+    if (!session) return;
+    fetchCurrentPrompt();
+    fetchPromptHistory();
+    fetchInteractionNetwork();
+    fetchStrategicRulebook();
   }, [session]);
 
+  /* --------------------------- fetchers --------------------------- */
   const fetchCurrentPrompt = async () => {
     try {
-      const response = await fetch('/api/master-prompt');
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentPrompt(data);
-        setEditedPrompt(data.prompt);
-        setIsDefault(data.isDefault || false);
-        setCurrentPromptInfo({
-          version: data.version,
-          isDefault: data.isDefault || false,
-          id: data.id
-        });
-      }
-    } catch (_err) {
+      const res = await fetch('/api/master-prompt');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setCurrentPrompt(data);
+      setEditedPrompt(data.prompt);
+      setIsDefault(!!data.isDefault);
+    } catch {
       setError('Failed to fetch current prompt');
     }
   };
 
   const fetchPromptHistory = async () => {
     try {
-      const response = await fetch('/api/master-prompt/history');
-      if (response.ok) {
-        const data = await response.json();
-        setPromptHistory(data.prompts || []);
-      }
-    } catch (_err) {
-      console.error('Failed to fetch prompt history:', _err);
+      const res = await fetch('/api/master-prompt/history');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setPromptHistory(data.prompts || []);
+    } catch {
+      console.error('Failed to fetch prompt history');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const fetchInteractionNetwork = async () => {
+    try {
+      const res = await fetch('/api/pos/interaction-network');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setInteractionNetwork(data);
+      setEditedNetwork(JSON.stringify(data.content, null, 2));
+    } catch {
+      setEditedNetwork(JSON.stringify({ contacts: [] }, null, 2)); // start blank
+    }
+  };
+
+  const fetchStrategicRulebook = async () => {
+    try {
+      const res = await fetch('/api/pos/strategic-rulebook');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setStrategicRulebook(data);
+      setEditedRulebook(JSON.stringify(data.content, null, 2));
+    } catch {
+      setEditedRulebook(JSON.stringify({ rules: [] }, null, 2)); // start blank
+    }
+  };
+
+  /* --------------------------- savers ---------------------------- */
   const savePrompt = async () => {
     if (!editedPrompt.trim()) {
       setError('Prompt cannot be empty');
@@ -132,126 +204,98 @@ export const VoiceRulesPage: React.FC = () => {
     setError(null);
 
     try {
-      let response;
-      
-      // Check if this is an AI-generated prompt being edited (distilled edit)
-      if (currentPrompt?.isGenerated && currentPrompt?.id) {
-        console.log('🌀 Saving distilled prompt edits...');
-        response = await fetch('/api/master-prompt', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt: editedPrompt.trim(),
-            promptId: currentPrompt.id,
-            isDistilledEdit: true
-          })
-        });
-      } else {
-        // Create new manual prompt
-        console.log('📝 Saving new manual prompt...');
-        response = await fetch('/api/master-prompt', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prompt: editedPrompt.trim()
-          })
-        });
+      const method =
+        currentPrompt?.isGenerated && currentPrompt?.id ? 'PUT' : 'POST';
+      const payload =
+        method === 'PUT'
+          ? {
+              prompt: editedPrompt.trim(),
+              promptId: currentPrompt?.id,
+              isDistilledEdit: true,
+            }
+          : { prompt: editedPrompt.trim() };
+
+      const res = await fetch('/api/master-prompt', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to save prompt');
       }
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Prompt saved:', data);
-        
-        // Refresh both current prompt and history
-        await fetchCurrentPrompt();
-        await fetchPromptHistory();
-        setIsDefault(false);
-        
-        // Show success message for distilled edits
-        if (data.isDistilledUpdate) {
-          console.log(`🎉 Distilled prompt edits applied to full Master Prompt v${data.version}`);
-        }
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to save prompt');
-      }
-    } catch (err) {
-      setError('Failed to save prompt');
-      console.error('Error saving prompt:', err);
+      await fetchCurrentPrompt();
+      await fetchPromptHistory();
+      setIsDefault(false);
+    } catch (e: any) {
+      setError(e.message || 'Failed to save prompt');
     } finally {
       setSaving(false);
     }
   };
 
-  const activateVersion = async (promptId: string) => {
+  const saveInteractionNetwork = async () => {
     setSaving(true);
     setError(null);
-
     try {
-      const response = await fetch('/api/master-prompt/activate', {
+      const res = await fetch('/api/pos/interaction-network', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          promptId
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: JSON.parse(editedNetwork) }),
       });
-
-      if (response.ok) {
-        // Refresh both current prompt and history
-        await fetchCurrentPrompt();
-        await fetchPromptHistory();
-        
-        // Update the edited prompt to match the activated version
-        const activatedPrompt = promptHistory.find(p => p.id === promptId);
-        if (activatedPrompt) {
-          setEditedPrompt(activatedPrompt.prompt);
-        }
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Failed to activate version');
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error);
       }
-    } catch (_err) {
-      setError('Failed to activate version');
+      fetchInteractionNetwork();
+    } catch {
+      setError('Failed to save Interaction Network. Invalid JSON?');
     } finally {
       setSaving(false);
     }
   };
 
+  const saveStrategicRulebook = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/pos/strategic-rulebook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: JSON.parse(editedRulebook) }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error);
+      }
+      fetchStrategicRulebook();
+    } catch {
+      setError('Failed to save Strategic Rulebook. Invalid JSON?');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* --------------------- reply-generation test -------------------- */
   const testReplyGeneration = async () => {
     setIsTestingReply(true);
-    setTestError(null);
     setTestResult(null);
-
+    setTestError(null);
     try {
-      const response = await fetch('/api/test-reply-generation', {
+      const res = await fetch('/api/test-reply-generation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customEmail: {
-            from: customEmail.from.trim(),
-            subject: customEmail.subject.trim(),
-            body: customEmail.body.trim()
-          }
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customEmail }),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTestResult(data);
-      } else {
-        const errorData = await response.json();
-        setTestError(errorData.error || 'Failed to test reply generation');
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error);
       }
-    } catch (_err) {
-      setTestError('Failed to test reply generation');
+      setTestResult(await res.json());
+    } catch (e: any) {
+      setTestError(e.message || 'Failed to test reply generation');
     } finally {
       setIsTestingReply(false);
     }
@@ -262,83 +306,71 @@ export const VoiceRulesPage: React.FC = () => {
       {
         from: 'boss@company.com',
         subject: 'Urgent: Project Status Update',
-        body: 'Hi there,\n\nI hope you\'re doing well. I need an update on the current project status by end of day. Can you please send me:\n\n1. Current progress percentage\n2. Any blockers or issues\n3. Expected completion date\n\nThis is needed for the board meeting tomorrow.\n\nThanks!'
+        body: `Hi there,
+
+I need an update on the current project status by end of day:
+
+1. Current progress %
+2. Any blockers
+3. Expected completion
+
+Thanks!`,
       },
       {
         from: 'client@bigcorp.com',
         subject: 'Meeting Reschedule Request',
-        body: 'Hello,\n\nI need to reschedule our meeting planned for Thursday 2pm due to a conflict that just came up. \n\nCould we move it to Friday same time? Let me know if that works for you.\n\nBest regards,\nSarah'
+        body: `Hello,
+
+I need to reschedule our meeting planned for Thursday 2 pm.
+
+Could we move it to Friday same time?
+
+Best,
+Sarah`,
       },
       {
         from: 'team@startup.io',
         subject: 'Quick Question about Feature',
-        body: 'Hey!\n\nQuick question - do you think we should add the dark mode toggle to the header or settings page? \n\nI\'m leaning towards header for better UX but wanted your thoughts.\n\nThanks!\nAlex'
-      }
+        body: `Hey!
+
+Quick question – should we add the dark-mode toggle to the header or settings?
+
+Thanks!
+Alex`,
+      },
     ];
-    
-    const randomSample = samples[Math.floor(Math.random() * samples.length)];
-    setCustomEmail(randomSample);
+    setCustomEmail(samples[Math.floor(Math.random() * samples.length)]);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  /* --------------------------- helpers --------------------------- */
+  const getTabColorClasses = (tabId: TabId, isActive: boolean) => {
+    const tab = tabs.find((t) => t.id === tabId);
+    if (!tab) return '';
+
+    const palette = {
+      blue: isActive
+        ? 'bg-blue-500/10 border border-blue-500 text-blue-600'
+        : 'text-gray-500 hover:text-blue-600 hover:bg-blue-100',
+      purple: isActive
+        ? 'bg-purple-500/10 border border-purple-500 text-purple-700'
+        : 'text-gray-500 hover:text-purple-700 hover:bg-purple-100',
+      green: isActive
+        ? 'bg-green-500/10 border border-green-500 text-green-700'
+        : 'text-gray-500 hover:text-green-700 hover:bg-green-100',
+    } as const;
+
+    return palette[tab.color];
   };
 
-  const checkGenerationEligibility = async () => {
-    try {
-      const response = await fetch('/api/master-prompt/generate');
-      if (response.ok) {
-        const data = await response.json();
-        setGenerationEligibility(data);
-      }
-    } catch (error) {
-      console.error('Error checking generation eligibility:', error);
-    }
-  };
-
-  const generateMasterPrompt = async () => {
-    if (!generationEligibility?.canGenerate) {
-      alert('You need more sent emails to generate a Master Prompt');
-      return;
-    }
-
-    setIsGeneratingPrompt(true);
-    try {
-      const response = await fetch('/api/master-prompt/generate', {
-        method: 'POST'
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert(`Master Prompt v${data.version} generated successfully with ${data.confidence}% confidence!`);
-        await fetchCurrentPrompt();
-        await fetchPromptHistory();
-      } else {
-        alert(`Failed to generate Master Prompt: ${data.message || data.error}`);
-      }
-    } catch (error) {
-      console.error('Error generating Master Prompt:', error);
-      alert('Failed to generate Master Prompt. Please try again.');
-    } finally {
-      setIsGeneratingPrompt(false);
-    }
-  };
-
+  /* -------------------------- rendering -------------------------- */
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="relative w-12 h-12 mx-auto mb-6">
-            <div className="w-12 h-12 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+            <div className="w-12 h-12 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
           </div>
-          <p className="text-lg font-medium text-gray-700">Loading AI configuration...</p>
+          <p className="text-lg font-medium text-gray-700">Loading AI configuration…</p>
           <p className="text-sm text-gray-500 mt-2">Initializing neural pathways</p>
         </div>
       </div>
@@ -347,7 +379,9 @@ export const VoiceRulesPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* ---------------------------------------------------------------- */}
+      {/* Header                                                          */}
+      {/* ---------------------------------------------------------------- */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
         <div className="flex-1 mb-6 lg:mb-0">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2 flex items-center">
@@ -355,212 +389,343 @@ export const VoiceRulesPage: React.FC = () => {
             Voice and Rules Configuration
           </h1>
           <p className="text-gray-600 max-w-2xl leading-relaxed">
-            Configure your AI assistant's personality, behavior, and response patterns. Train it to respond like you.
+            Configure your AI assistant’s personality, behavior, and response patterns. Train it to
+            respond like you.
           </p>
         </div>
       </div>
 
+      {/* ---------------------------------------------------------------- */}
+      {/* Main Grid                                                        */}
+      {/* ---------------------------------------------------------------- */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-        {/* Main Editor - Takes up 3/4 of space */}
+        {/* ========================= Editor + Tabs ===================== */}
         <div className="xl:col-span-3 space-y-6">
-          {/* Prompt Editor - Much larger */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-8 h-[calc(100vh-200px)] shadow-elegant">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Wand2 className="w-5 h-5 text-blue-600" />
+          {/* --- Tab Navigation ---------------------------------------- */}
+          <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-2xl">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center justify-center flex-1 space-x-2 px-4 py-3 rounded-xl transition-all duration-200 ${getTabColorClasses(
+                    tab.id,
+                    isActive,
+                  )}`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="font-medium text-sm">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* --- Tab Content Wrapper ----------------------------------- */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-8 h-[calc(100vh-300px)] shadow-md overflow-hidden flex flex-col">
+            {/* -------------- Master Prompt --------------------------- */}
+            {activeTab === 'master-prompt' && (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                      <Wand2 className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Master Prompt{' '}
+                        {isDefault && <span className="text-sm text-gray-500">(Default)</span>}
+                      </h3>
+                      {currentPrompt?.isGenerated && (
+                        <span className="text-sm text-blue-600">AI-Generated</span>
+                      )}
+                    </div>
+                  </div>
+                  {currentPrompt && !isDefault && (
+                    <span className="text-sm text-gray-500">v{currentPrompt.version}</span>
+                  )}
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Master Prompt {isDefault && <span className="text-sm text-gray-500">(Default)</span>}
-                  </h3>
-                  {currentPrompt?.isGenerated && (
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className="text-sm text-blue-600">
-                        AI-Generated
+
+                {currentPrompt?.isGenerated && (
+                  <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Bot className="w-5 h-5 text-blue-600" />
+                      <span className="font-medium text-blue-800">
+                        AI-Generated Master Prompt
                       </span>
                     </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                {currentPrompt && !isDefault && (
-                  <span className="text-sm text-gray-500">
-                    v{currentPrompt.version}
-                  </span>
+                    <p className="text-sm text-blue-700 leading-relaxed">
+                      This prompt was automatically generated by analyzing your email history.
+                      You’re editing a simplified version — changes will be intelligently applied to
+                      the full prompt.
+                      {currentPrompt.metadata?.emailsAnalyzed && (
+                        <span className="block mt-1">
+                          Based on {currentPrompt.metadata.emailsAnalyzed} sent emails.
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 )}
-              </div>
-            </div>
-            
-            {currentPrompt?.isGenerated && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="flex items-center space-x-3 mb-2">
-                  <Bot className="w-5 h-5 text-blue-600" />
-                  <div className="font-medium text-blue-800">AI-Generated Master Prompt</div>
-                </div>
-                <div className="text-sm text-blue-700">
-                  This prompt was automatically generated by analyzing your email history. 
-                  You're editing a simplified version - changes will be intelligently applied to the full prompt.
-                  {currentPrompt.metadata?.emailsAnalyzed && (
-                    <span className="block mt-1">
-                      Based on {currentPrompt.metadata.emailsAnalyzed} sent emails.
-                    </span>
-                  )}
+
+                {/* Textarea */}
+                <textarea
+                  value={editedPrompt}
+                  onChange={(e) => setEditedPrompt(e.target.value)}
+                  placeholder="Enter your AI's personality and behavior instructions here…"
+                  className="flex-1 p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 font-mono text-sm text-gray-900 leading-relaxed"
+                />
+
+                {/* Error */}
+                {error && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div className="mt-6 flex items-center justify-between">
+                  <span className="text-sm text-gray-500">
+                    {editedPrompt.length} characters
+                    {currentPrompt?.isGenerated && (
+                      <span className="ml-2 text-blue-600">• editing simplified version</span>
+                    )}
+                  </span>
+                  <button
+                    onClick={savePrompt}
+                    disabled={isSaving || !editedPrompt.trim()}
+                    className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium shadow-sm"
+                  >
+                    <Save size={16} className="mr-2" />
+                    {isSaving
+                      ? 'Saving…'
+                      : currentPrompt?.isGenerated
+                      ? 'Apply Changes'
+                      : 'Save Prompt'}
+                  </button>
                 </div>
               </div>
             )}
-            
-            <div className="flex flex-col h-[calc(100%-200px)]">
-              <textarea
-                value={editedPrompt}
-                onChange={(e) => setEditedPrompt(e.target.value)}
-                placeholder="Enter your AI's personality and behavior instructions here..."
-                className="flex-1 p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 placeholder-gray-500 font-mono text-sm leading-relaxed"
-              />
-              
-              {error && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="text-sm text-red-700">
-                    {error}
+
+            {/* -------------- Interaction Network -------------------- */}
+            {activeTab === 'interaction-network' && (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                      <Users className="w-5 h-5 text-purple-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Interaction Network</h3>
+                      <p className="text-sm text-gray-500">
+                        Define your professional relationships and their functions
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              <div className="mt-6 flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                  {editedPrompt.length} characters
-                  {currentPrompt?.isGenerated && (
-                    <span className="ml-2 text-blue-600">
-                      • Editing simplified version
+                  {interactionNetwork && (
+                    <span className="text-sm text-gray-500">
+                      v{interactionNetwork.version}
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={savePrompt}
-                  disabled={isSaving || !editedPrompt.trim()}
-                  className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium shadow-elegant cursor-pointer"
-                >
-                  <Save size={16} className="mr-2" />
-                  {isSaving ? 'Saving...' : currentPrompt?.isGenerated ? 'Apply Changes' : 'Save Prompt'}
-                </button>
+
+                <textarea
+                  value={editedNetwork}
+                  onChange={(e) => setEditedNetwork(e.target.value)}
+                  placeholder={`{
+  "contacts": [
+    {
+      "email": "colleague@company.com",
+      "name": "John Doe",
+      "role": "Project Manager",
+      "functions": ["PROJECT_UPDATES", "TASK_COORDINATION"]
+    }
+  ]
+}`}
+                  className="flex-1 p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-purple-700/50 focus:border-purple-700/50 font-mono text-sm text-gray-900 leading-relaxed"
+                />
+
+                <div className="mt-6 flex items-center justify-between">
+                  <span className="text-sm text-gray-500">JSON format</span>
+                  <button
+                    onClick={saveInteractionNetwork}
+                    disabled={isSaving || !editedNetwork.trim()}
+                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium shadow-sm"
+                  >
+                    <Save size={16} className="mr-2" />
+                    {isSaving ? 'Saving…' : 'Save Network'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* -------------- Strategic Rulebook --------------------- */}
+            {activeTab === 'strategic-rulebook' && (
+              <div className="flex flex-col flex-1 overflow-hidden">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <ListChecks className="w-5 h-5 text-green-700" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Strategic Rulebook</h3>
+                      <p className="text-sm text-gray-500">
+                        Define IF/THEN rules and workflows
+                      </p>
+                    </div>
+                  </div>
+                  {strategicRulebook && (
+                    <span className="text-sm text-gray-500">
+                      v{strategicRulebook.version}
+                    </span>
+                  )}
+                </div>
+
+                <textarea
+                  value={editedRulebook}
+                  onChange={(e) => setEditedRulebook(e.target.value)}
+                  placeholder={`{
+  "rules": [
+    {
+      "if": "email contains scheduling request",
+      "then": "send calendar link and suggest 3 time slots",
+      "priority": "high"
+    }
+  ]
+}`}
+                  className="flex-1 p-4 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-green-700/50 focus:border-green-700/50 font-mono text-sm text-gray-900 leading-relaxed"
+                />
+
+                <div className="mt-6 flex items-center justify-between">
+                  <span className="text-sm text-gray-500">JSON format</span>
+                  <button
+                    onClick={saveStrategicRulebook}
+                    disabled={isSaving || !editedRulebook.trim()}
+                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center font-medium shadow-sm"
+                  >
+                    <Save size={16} className="mr-2" />
+                    {isSaving ? 'Saving…' : 'Save Rulebook'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Sidebar - Takes up 1/4 of space */}
+        {/* ============================ Sidebar ====================== */}
         <div className="space-y-6">
-          {/* Test Environment */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-elegant">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <TestTube className="w-4 h-4 text-blue-600" />
-                </div>
-                <h3 className="text-sm font-semibold text-gray-900">
-                  Test AI Response
-                </h3>
+          {/* --- Test AI --------------------------------------------- */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-md">
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                <TestTube className="w-4 h-4 text-blue-600" />
               </div>
+              <h3 className="text-sm font-semibold text-gray-900">Test AI Response</h3>
             </div>
-            
+
             <p className="text-xs text-gray-600 mb-4">
               Test how your AI will respond to different emails.
             </p>
 
-            {/* Test Email Form */}
+            {/* Form */}
             <div className="space-y-4 mb-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  From
-                </label>
+              <label className="block text-xs font-medium text-gray-700">
+                From
                 <input
                   type="email"
                   value={customEmail.from}
                   onChange={(e) => setCustomEmail({ ...customEmail, from: e.target.value })}
                   placeholder="boss@company.com"
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs"
+                  className="w-full p-2 mt-1 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs"
                 />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Subject
-                </label>
+              </label>
+
+              <label className="block text-xs font-medium text-gray-700">
+                Subject
                 <input
                   type="text"
                   value={customEmail.subject}
                   onChange={(e) => setCustomEmail({ ...customEmail, subject: e.target.value })}
-                  placeholder="Project Update"
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs"
+                  placeholder="Project update"
+                  className="w-full p-2 mt-1 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs"
                 />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Email Body
-                </label>
+              </label>
+
+              <label className="block text-xs font-medium text-gray-700">
+                Email Body
                 <textarea
+                  rows={4}
                   value={customEmail.body}
                   onChange={(e) => setCustomEmail({ ...customEmail, body: e.target.value })}
-                  placeholder="Enter email content..."
-                  rows={4}
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs resize-none leading-relaxed"
+                  placeholder="Enter email content…"
+                  className="w-full p-2 mt-1 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-gray-900 text-xs resize-none leading-relaxed"
                 />
-              </div>
+              </label>
             </div>
 
             <div className="flex space-x-2 mb-4">
               <button
                 onClick={loadSampleEmails}
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 Load Sample
               </button>
               <button
                 onClick={testReplyGeneration}
-                disabled={isTestingReply || !customEmail.from.trim() || !customEmail.subject.trim() || !customEmail.body.trim()}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center shadow-elegant cursor-pointer"
+                disabled={
+                  isTestingReply ||
+                  !customEmail.from.trim() ||
+                  !customEmail.subject.trim() ||
+                  !customEmail.body.trim()
+                }
+                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
               >
                 <Play size={12} className="mr-1" />
-                {isTestingReply ? 'Testing...' : 'Test'}
+                {isTestingReply ? 'Testing…' : 'Test'}
               </button>
             </div>
 
+            {/* Errors / Results */}
             {testError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="text-xs text-red-700">
-                  {testError}
-                </div>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                {testError}
               </div>
             )}
 
             {testResult && (
-              <div className="mt-4 space-y-4">
+              <div className="space-y-4">
                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
                   <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center">
                     <Eye size={12} className="mr-1" />
                     Test Email
                   </h4>
-                  <div className="text-xs space-y-1 font-mono">
-                    <div><span className="text-gray-500">From:</span> <span className="text-gray-900">{testResult.testEmail.from}</span></div>
-                    <div><span className="text-gray-500">Subject:</span> <span className="text-gray-900">{testResult.testEmail.subject}</span></div>
+                  <div className="text-xs font-mono leading-relaxed space-y-1">
+                    <div>
+                      <span className="text-gray-500">From:</span>{' '}
+                      <span className="text-gray-900">{testResult.testEmail.from}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Subject:</span>{' '}
+                      <span className="text-gray-900">{testResult.testEmail.subject}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-3 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg">
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <h4 className="text-xs font-medium text-emerald-700 mb-2 flex items-center">
                     <Zap size={12} className="mr-1" />
                     AI Reply
                   </h4>
-                  <div className="text-xs text-emerald-800 bg-white p-2 rounded border border-emerald-200 font-mono leading-relaxed max-h-32 overflow-y-auto">
+                  <pre className="text-xs text-emerald-800 bg-white p-2 rounded border border-emerald-200 font-mono max-h-32 overflow-y-auto">
                     {testResult.generatedReply.reply}
-                  </div>
+                  </pre>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Tips */}
+          {/* --- Tips ------------------------------------------------- */}
           <div className="bg-gradient-to-br from-blue-50 to-gray-50 border border-blue-200 rounded-2xl p-4">
             <h4 className="text-xs font-medium text-blue-800 mb-2 flex items-center">
               <Sparkles size={12} className="mr-1" />
@@ -570,11 +735,11 @@ export const VoiceRulesPage: React.FC = () => {
               <li>• Be specific about tone and style</li>
               <li>• Include response examples</li>
               <li>• Test with different scenarios</li>
-              <li>• Use "Load Sample" for quick tests</li>
+              <li>• Use “Load Sample” for quick tests</li>
             </ul>
           </div>
         </div>
       </div>
     </div>
   );
-}; 
+};

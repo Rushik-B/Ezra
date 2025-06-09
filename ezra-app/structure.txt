@@ -1,7 +1,12 @@
+This is the structure of the whole monorepo. Use this as context for the whole structure.
+
+Please eidt this file when you change anything in this structure.
+
 .
 ├── GMAIL_PUSH_SETUP.md
 ├── README.md
 ├── eslint.config.mjs
+├── example-master-prompt.md
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package-lock.json
@@ -12,6 +17,10 @@
 │   │   ├── 20250606224835_add_generated_reply
 │   │   │   └── migration.sql
 │   │   ├── 20250606225402_add_history_id_to_settings
+│   │   │   └── migration.sql
+│   │   ├── 20250606233445_add_action_history_table
+│   │   │   └── migration.sql
+│   │   ├── 20250609183409_replace_master_prompt_with_personalized_os
 │   │   │   └── migration.sql
 │   │   └── migration_lock.toml
 │   └── schema.prisma
@@ -24,6 +33,8 @@
 ├── src
 │   ├── app
 │   │   ├── api
+│   │   │   ├── action-history
+│   │   │   │   └── route.ts
 │   │   │   ├── auth
 │   │   │   │   └── [...nextauth]
 │   │   │   │       └── route.ts
@@ -40,6 +51,10 @@
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── webhook
 │   │   │   │       └── route.ts
+│   │   │   ├── labels
+│   │   │   │   ├── route.ts
+│   │   │   │   └── sync
+│   │   │   │       └── route.ts
 │   │   │   ├── master-prompt
 │   │   │   │   ├── activate
 │   │   │   │   │   └── route.ts
@@ -50,6 +65,11 @@
 │   │   │   │   ├── history
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
+│   │   │   ├── personalized-os
+│   │   │   │   ├── ensure
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── generate
+│   │   │   │       └── route.ts
 │   │   │   ├── queue
 │   │   │   │   ├── generate-draft
 │   │   │   │   │   └── route.ts
@@ -88,7 +108,6 @@
 │   │       ├── LineGraph.tsx
 │   │       ├── PieChart.tsx
 │   │       └── Tooltip.tsx
-│   ├── hooks
 │   ├── lib
 │   │   ├── auth.ts
 │   │   ├── calendarService.ts
@@ -97,7 +116,9 @@
 │   │   ├── gmailPushService.ts
 │   │   ├── llm.ts
 │   │   ├── masterPromptGenerator.ts
+│   │   ├── migrationHelper.ts
 │   │   ├── mockData.tsx
+│   │   ├── personalizedOSService.ts
 │   │   ├── prisma.ts
 │   │   ├── prompts.ts
 │   │   ├── replyGenerator.ts
