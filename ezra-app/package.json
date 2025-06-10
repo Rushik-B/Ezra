@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp ./node_modules/tiktoken/tiktoken_bg.wasm .next/server/chunks/",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate"
@@ -25,6 +25,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "class-variance-authority": "^0.7.1",
     "googleapis": "^149.0.0",
+    "js-tiktoken": "^1.0.20",
     "langchain": "^0.2.20",
     "lucide-react": "^0.511.0",
     "next": "15.3.3",
@@ -33,8 +34,7 @@
     "prisma": "^6.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-icons": "^5.5.0",
-    "tiktoken": "^1.0.21"
+    "react-icons": "^5.5.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

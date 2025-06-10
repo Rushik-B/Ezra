@@ -3,7 +3,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { getStyleAnalysisPrompt, getReplyGenerationPrompt, readPromptFile } from './prompts';
 import { IncomingEmailScannerOutput } from '@/types';
-import { encoding_for_model, type Tiktoken } from 'tiktoken';
+import { getEncoding, type Tiktoken } from 'js-tiktoken';
 
 // Global token tracking interface
 interface TokenTracker {
@@ -99,7 +99,7 @@ export class LLMService {
     }
 
     // Initialize tokenizer for accurate token counting
-    this.tokenizer = encoding_for_model("gpt-4");
+    this.tokenizer = getEncoding("cl100k_base"); // GPT-4 encoding
   }
 
   /**
