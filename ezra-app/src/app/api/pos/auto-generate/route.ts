@@ -24,47 +24,58 @@ export async function POST(request: NextRequest) {
     let interactionNetworkGenerated = false;
     let strategicRulebookGenerated = false;
 
-    // Generate Interaction Network
+    // Generate Interaction Network using dedicated endpoint
+    console.log(`🤝 Triggering Interaction Network generation...`);
     try {
-      console.log(`🤝 Checking if Interaction Network exists for user ${userId}...`);
-      const existingNetwork = await prisma.interactionNetwork.findFirst({
-        where: { userId, isActive: true }
+      const networkResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/pos/interaction-network/auto-generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userId}`
+        },
+        body: JSON.stringify({ userId })
       });
-
-      if (!existingNetwork) {
-        console.log(`📊 Generating Interaction Network for user ${userId}...`);
-        await generator.generateAndSaveInteractionNetwork(userId);
-        interactionNetworkGenerated = true;
-        console.log(`✅ Interaction Network generated for user ${userId}`);
+      
+      if (networkResponse.ok) {
+        const networkResult = await networkResponse.json();
+        if (networkResult.success) {
+          interactionNetworkGenerated = true;
+          console.log(`✅ Interaction Network generation completed`);
+        }
       } else {
-        console.log(`✅ User ${userId} already has Interaction Network`);
+        console.log(`⚠️ Interaction Network generation failed, but continuing...`);
       }
     } catch (error) {
-      console.error(`❌ Error generating Interaction Network for user ${userId}:`, error);
-      // Continue to Strategic Rulebook even if Interaction Network fails
+      console.log(`⚠️ Interaction Network generation error: ${error}, but continuing...`);
     }
 
     // Wait 5 seconds before generating Strategic Rulebook
     console.log('⏳ Waiting 5 seconds before generating Strategic Rulebook...');
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // Generate Strategic Rulebook
+    // Generate Strategic Rulebook using dedicated endpoint
+    console.log(`📜 Triggering Strategic Rulebook generation...`);
     try {
-      console.log(`📜 Checking if Strategic Rulebook exists for user ${userId}...`);
-      const existingRulebook = await prisma.strategicRulebook.findFirst({
-        where: { userId, isActive: true }
+      const rulebookResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/pos/strategic-rulebook/auto-generate`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userId}`
+        },
+        body: JSON.stringify({ userId })
       });
-
-      if (!existingRulebook) {
-        console.log(`📋 Generating Strategic Rulebook for user ${userId}...`);
-        await generator.generateAndSaveStrategicRulebook(userId);
-        strategicRulebookGenerated = true;
-        console.log(`✅ Strategic Rulebook generated for user ${userId}`);
+      
+      if (rulebookResponse.ok) {
+        const rulebookResult = await rulebookResponse.json();
+        if (rulebookResult.success) {
+          strategicRulebookGenerated = true;
+          console.log(`✅ Strategic Rulebook generation completed`);
+        }
       } else {
-        console.log(`✅ User ${userId} already has Strategic Rulebook`);
+        console.log(`⚠️ Strategic Rulebook generation failed, but continuing...`);
       }
     } catch (error) {
-      console.error(`❌ Error generating Strategic Rulebook for user ${userId}:`, error);
+      console.log(`⚠️ Strategic Rulebook generation error: ${error}, but continuing...`);
     }
 
     const message = `POS generation complete for user ${userId}`;

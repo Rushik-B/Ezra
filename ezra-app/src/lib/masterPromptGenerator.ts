@@ -93,16 +93,7 @@ export class MasterPromptGeneratorService {
       const sentEmails = await this.fetchUserSentEmails(userId, 500);
       
       if (sentEmails.length === 0) {
-        console.log('⚠️ No sent emails found, creating default Interaction Network');
-        return {
-          content: {
-            contacts: [],
-            function_map: {},
-            notes: "Default network - will be populated as you send more emails"
-          },
-          emailsAnalyzed: 0,
-          generatedAt: new Date(),
-        };
+        throw new Error('No sent emails found for Interaction Network generation');
       }
       
       console.log(`🤝 Analyzing ${sentEmails.length} sent emails for Interaction Network`);
@@ -136,15 +127,7 @@ export class MasterPromptGeneratorService {
       const sentEmails = await this.fetchUserSentEmails(userId, 500);
       
       if (sentEmails.length === 0) {
-        console.log('⚠️ No sent emails found, creating default Strategic Rulebook');
-        return {
-          content: {
-            rules: [],
-            notes: "Default rulebook - will be populated as you send more emails"
-          },
-          emailsAnalyzed: 0,
-          generatedAt: new Date(),
-        };
+        throw new Error('No sent emails found for Strategic Rulebook generation');
       }
       
       console.log(`📜 Analyzing ${sentEmails.length} sent emails for Strategic Rulebook`);
@@ -441,11 +424,31 @@ export class MasterPromptGeneratorService {
     
     console.log(`🤝 Interaction Network missing for user ${userId}, generating...`);
     try {
+      // Try to generate with real emails first
       await this.generateAndSaveInteractionNetwork(userId);
       return true;
     } catch(e) {
-      console.error(`❌ Error ensuring Interaction Network for user ${userId}:`, e);
-      return false;
+      // If no emails available, create a default structure for new users
+      console.log('⚠️ No sent emails found, creating default Interaction Network');
+      try {
+        const defaultNetwork = await prisma.interactionNetwork.create({
+          data: {
+            userId,
+            content: {
+              contacts: [],
+              function_map: {},
+              notes: "Default network - will be populated as you send more emails"
+            },
+            version: 1,
+            isActive: true
+          }
+        });
+        console.log(`✅ Default Interaction Network created for user ${userId}`);
+        return true;
+      } catch (dbError) {
+        console.error(`❌ Error creating default Interaction Network for user ${userId}:`, dbError);
+        return false;
+      }
     }
   }
 
@@ -458,11 +461,30 @@ export class MasterPromptGeneratorService {
 
     console.log(`📜 Strategic Rulebook missing for user ${userId}, generating...`);
     try {
+      // Try to generate with real emails first
       await this.generateAndSaveStrategicRulebook(userId);
       return true;
     } catch(e) {
-      console.error(`❌ Error ensuring Strategic Rulebook for user ${userId}:`, e);
-      return false;
+      // If no emails available, create a default structure for new users
+      console.log('⚠️ No sent emails found, creating default Strategic Rulebook');
+      try {
+        const defaultRulebook = await prisma.strategicRulebook.create({
+          data: {
+            userId,
+            content: {
+              rules: [],
+              notes: "Default rulebook - will be populated as you send more emails"
+            },
+            version: 1,
+            isActive: true
+          }
+        });
+        console.log(`✅ Default Strategic Rulebook created for user ${userId}`);
+        return true;
+      } catch (dbError) {
+        console.error(`❌ Error creating default Strategic Rulebook for user ${userId}:`, dbError);
+        return false;
+      }
     }
   }
 
