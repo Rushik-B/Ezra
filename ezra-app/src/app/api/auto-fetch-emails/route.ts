@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { GmailService } from '@/lib/gmail'
 import { prisma } from '@/lib/prisma'
-import { MasterPromptGeneratorService } from '@/lib/masterPromptGenerator'
 
 // In-memory lock to prevent concurrent fetches for the same user
 const userFetchLocks = new Map<string, boolean>()
@@ -119,44 +118,34 @@ export async function POST() {
 
       console.log(`Auto-fetch completed. User now has ${userEmailCount} emails in ${userThreadCount} threads`)
 
-      // Auto-generate Master Prompt if eligible and doesn't have AI-generated one yet
-      let masterPromptGenerated = false;
+      // Trigger Master Prompt generation in a separate function to avoid timeout
       try {
-        // Check if user already has an AI-generated Master Prompt
-        const existingGeneratedPrompt = await prisma.masterPrompt.findFirst({
-          where: {
-            userId: userId,
-            isGenerated: true
-          }
+        console.log('🚀 Triggering Master Prompt generation in separate function...');
+        
+        // Call the generate endpoint asynchronously - don't wait for response
+        fetch(`${process.env.NEXTAUTH_URL || 'https://ezra-frontend.vercel.app'}/api/master-prompt/auto-generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userId}` // Simple auth using userId
+          },
+          body: JSON.stringify({ userId })
+        }).catch(error => {
+          console.error('❌ Error triggering Master Prompt generation:', error);
         });
 
-        if (!existingGeneratedPrompt) {
-          console.log('🧠 Checking if Master Prompt can be auto-generated...');
-          const generator = new MasterPromptGeneratorService();
-          const eligibility = await generator.canGenerateMasterPrompt(userId);
-          
-          if (eligibility.canGenerate) {
-            console.log(`✨ Auto-generating Master Prompt for user ${userId}...`);
-            const result = await generator.generateAndSaveMasterPrompt(userId);
-            console.log(`🎉 Master Prompt v${result.version} auto-generated with ${result.confidence}% confidence`);
-            masterPromptGenerated = true;
-          } else {
-            console.log(`📧 User has ${eligibility.emailCount}/${eligibility.minimumRequired} emails needed for Master Prompt generation`);
-          }
-        } else {
-          console.log('✅ User already has an AI-generated Master Prompt');
-        }
+        console.log('✅ Master Prompt generation triggered successfully');
       } catch (error) {
-        console.error('❌ Error during auto Master Prompt generation:', error);
-        // Don't fail the entire auto-fetch if Master Prompt generation fails
+        console.error('❌ Error triggering Master Prompt generation:', error);
+        // Don't fail the auto-fetch if trigger fails
       }
 
       return NextResponse.json({
-        message: 'Auto-fetch completed successfully',
+        message: 'Auto-fetch completed successfully - Master Prompt generation started',
         emailCount: emails.length,
         totalUserEmails: userEmailCount,
         totalUserThreads: userThreadCount,
-        masterPromptGenerated
+        masterPromptGenerationTriggered: true
       })
 
     } finally {

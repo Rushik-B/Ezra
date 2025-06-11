@@ -91,9 +91,20 @@ export class MasterPromptGeneratorService {
     try {
       console.log(`Starting Interaction Network generation for user: ${userId}`);
       const sentEmails = await this.fetchUserSentEmails(userId, 500);
+      
       if (sentEmails.length === 0) {
-        throw new Error('No sent emails found for Interaction Network generation');
+        console.log('⚠️ No sent emails found, creating default Interaction Network');
+        return {
+          content: {
+            contacts: [],
+            function_map: {},
+            notes: "Default network - will be populated as you send more emails"
+          },
+          emailsAnalyzed: 0,
+          generatedAt: new Date(),
+        };
       }
+      
       console.log(`🤝 Analyzing ${sentEmails.length} sent emails for Interaction Network`);
       const emailCorpus = this.formatEmailsForAnalysis(sentEmails);
 
@@ -123,9 +134,19 @@ export class MasterPromptGeneratorService {
     try {
       console.log(`Starting Strategic Rulebook generation for user: ${userId}`);
       const sentEmails = await this.fetchUserSentEmails(userId, 500);
+      
       if (sentEmails.length === 0) {
-        throw new Error('No sent emails found for Strategic Rulebook generation');
+        console.log('⚠️ No sent emails found, creating default Strategic Rulebook');
+        return {
+          content: {
+            rules: [],
+            notes: "Default rulebook - will be populated as you send more emails"
+          },
+          emailsAnalyzed: 0,
+          generatedAt: new Date(),
+        };
       }
+      
       console.log(`📜 Analyzing ${sentEmails.length} sent emails for Strategic Rulebook`);
       const emailCorpus = this.formatEmailsForAnalysis(sentEmails);
 
@@ -189,15 +210,6 @@ export class MasterPromptGeneratorService {
       });
 
       console.log(`✅ Master Prompt v${nextVersion} saved for user ${userId}`);
-
-      // ALSO GENERATE AND SAVE THE OTHER POS COMPONENTS WITH DELAYS
-      console.log(`⏳ Waiting 5 seconds before generating Interaction Network...`);
-      await this.delay(5000);
-      await this.generateAndSaveInteractionNetwork(userId);
-      
-      console.log(`⏳ Waiting 5 seconds before generating Strategic Rulebook...`);
-      await this.delay(5000);
-      await this.generateAndSaveStrategicRulebook(userId);
 
       return {
         id: savedPrompt.id,
