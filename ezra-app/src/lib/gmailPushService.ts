@@ -302,14 +302,15 @@ export class GmailPushService {
    */
   private async updateLastHistoryId(userId: string, historyId: string): Promise<void> {
     try {
-      // For now, we'll just log the history ID
-      // In production, you'd want to store this in a dedicated table
+      // Ensure historyId is a string (it should be, but let's be explicit)
+      const historyIdString = String(historyId);
+      
       await prisma.userSettings.upsert({
         where: { userId },
-        update: { gmailHistoryId: historyId },
-        create: { userId, gmailHistoryId: historyId },
+        update: { gmailHistoryId: historyIdString },
+        create: { userId, gmailHistoryId: historyIdString },
       });
-      console.log(`📧 Updated last history ID for user ${userId}: ${historyId}`);
+      console.log(`📧 Updated last history ID for user ${userId}: ${historyIdString}`);
     } catch (error) {
       console.error('Error updating last history ID:', error);
     }
