@@ -42,6 +42,8 @@
 │   │   │   └── migration.sql
 │   │   ├── 20250609201759_add_pos_models
 │   │   │   └── migration.sql
+│   │   ├── 20250611203421_add_onboarding_completion_flags
+│   │   │   └── migration.sql
 │   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public
@@ -60,6 +62,9 @@
 │   │   │   │       └── route.ts
 │   │   │   ├── auto-fetch-emails
 │   │   │   │   └── route.ts
+│   │   │   ├── cron
+│   │   │   │   └── renew-gmail-watches
+│   │   │   │       └── route.ts
 │   │   │   ├── email-stats
 │   │   │   │   └── route.ts
 │   │   │   ├── fetch-emails
@@ -105,8 +110,11 @@
 │   │   │   │   └── route.ts
 │   │   │   ├── test-email
 │   │   │   │   └── route.ts
-│   │   │   └── test-reply-generation
-│   │   │       └── route.ts
+│   │   │   ├── test-reply-generation
+│   │   │   │   └── route.ts
+│   │   │   └── user
+│   │   │       └── onboarding-status
+│   │   │           └── route.ts
 │   │   ├── auth
 │   │   │   └── signin
 │   │   │       └── page.tsx
@@ -141,6 +149,7 @@
 │   │       ├── ConfidencePill.tsx
 │   │       ├── KeyMetricCard.tsx
 │   │       ├── LineGraph.tsx
+│   │       ├── OnboardingOverlay.tsx
 │   │       ├── PieChart.tsx
 │   │       ├── Tooltip.tsx
 │   │       └── sidebar
@@ -156,7 +165,8 @@
 │   │           ├── skeleton.tsx
 │   │           └── tooltip.tsx
 │   ├── hooks
-│   │   └── use-mobile.ts
+│   │   ├── use-mobile.ts
+│   │   └── useOnboardingStatus.ts
 │   ├── lib
 │   │   ├── auth.ts
 │   │   ├── calendarService.ts
@@ -197,4 +207,5 @@
 ├── tsconfig.json
 ├── tsconfig.tsbuildinfo
 ├── tsconfig.worker.json
-└── tsconfig.worker.tsbuildinfo
+├── tsconfig.worker.tsbuildinfo
+└── vercel.json

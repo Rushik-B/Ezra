@@ -107,6 +107,13 @@ export class GmailPushService {
         return;
       }
 
+      // Initialize Gmail client with user's credentials for this processing session
+      this.auth.setCredentials({
+        access_token: oauthAccount.accessToken,
+        refresh_token: oauthAccount.refreshToken,
+      });
+      this.gmail = google.gmail({ version: 'v1', auth: this.auth });
+
       // Get the last known history ID for this user
       const lastHistoryId = await this.getLastHistoryId(user.id);
       
@@ -191,9 +198,9 @@ export class GmailPushService {
    */
   private async getRecentEmails(gmailService: GmailService, maxResults: number = 10): Promise<any[]> {
     try {
-      console.log(`📧 Fetching ${maxResults} most recent emails`);
+      console.log(`📧 Fetching ${maxResults} most recent emails from inbox`);
       
-      // Get list of recent message IDs
+      // Use Gmail API directly to get recent inbox emails (not just sent)
       const response = await this.gmail.users.messages.list({
         userId: 'me',
         labelIds: ['INBOX'],
@@ -202,7 +209,7 @@ export class GmailPushService {
 
       const messages = response.data.messages || [];
       if (messages.length === 0) {
-        console.log(`📧 No recent emails found`);
+        console.log(`📧 No recent emails found in inbox`);
         return [];
       }
 
@@ -223,7 +230,7 @@ export class GmailPushService {
           console.error(`Error fetching recent message ${message.id}:`, error);
         }
       }
-
+      
       console.log(`📧 Found ${emails.length} recent incoming emails`);
       return emails;
       
@@ -238,6 +245,8 @@ export class GmailPushService {
    */
   private async getNewEmailsFromHistory(gmailService: GmailService, startHistoryId: string, endHistoryId: string): Promise<any[]> {
     try {
+      console.log(`📧 Fetching emails from history ${startHistoryId} to ${endHistoryId}`);
+      
       // Use Gmail history.list to get changes
       const response = await this.gmail.users.history.list({
         userId: 'me',
@@ -258,8 +267,11 @@ export class GmailPushService {
       });
 
       if (messageIds.length === 0) {
+        console.log(`📧 No new message IDs found in history`);
         return [];
       }
+
+      console.log(`📧 Found ${messageIds.length} new message IDs from history`);
 
       // Fetch the actual emails
       const emails = [];
@@ -271,7 +283,7 @@ export class GmailPushService {
           });
 
           const parsedEmail = this.parseGmailMessage(message.data);
-          if (parsedEmail) {
+          if (parsedEmail && !parsedEmail.isSent) { // Only process incoming emails
             emails.push(parsedEmail);
           }
         } catch (error) {
@@ -279,6 +291,7 @@ export class GmailPushService {
         }
       }
 
+      console.log(`📧 Successfully parsed ${emails.length} incoming emails from history`);
       return emails;
     } catch (error) {
       console.error('❌ Error getting emails from history:', error);
