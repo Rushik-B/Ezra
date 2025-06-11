@@ -105,7 +105,10 @@ export async function POST(req: Request) {
             subject: `Re: ${email.subject}`,
             body: replyContent,
             inReplyTo: email.messageId,
-            threadId: email.thread.id,
+            // NOTE: We don't pass threadId here because:
+            // 1. Our database threadId is a UUID, not Gmail's thread ID format
+            // 2. Gmail automatically handles threading via In-Reply-To header
+            // 3. This prevents "Invalid thread_id value" errors
           });
           
           console.log(`✅ Email sent successfully! Message ID: ${sentMessage.id}`);
@@ -138,9 +141,17 @@ export async function POST(req: Request) {
             }, { status: 401 });
           }
           
-          // For other errors, still record feedback but return error
-          await prisma.feedback.create({
-            data: {
+          // For other errors, use upsert to prevent duplicate feedback errors
+          await prisma.feedback.upsert({
+            where: { emailId: emailId },
+            update: {
+              action: 'REJECTED',
+              editDelta: { 
+                error: sendError instanceof Error ? sendError.message : 'Unknown send error',
+                attemptedContent: replyContent 
+              },
+            },
+            create: {
               userId: session.userId,
               emailId: emailId,
               action: 'REJECTED',
@@ -157,8 +168,14 @@ export async function POST(req: Request) {
           }, { status: 500 });
         }
 
-        await prisma.feedback.create({
-          data: {
+        // Use upsert to prevent duplicate feedback errors
+        await prisma.feedback.upsert({
+          where: { emailId: emailId },
+          update: {
+            action: action === 'approve' ? 'ACCEPTED' : 'EDITED',
+            editDelta: action === 'edit' ? { original: email.generatedReply?.draft, final: draftContent } : undefined,
+          },
+          create: {
             userId: session.userId,
             emailId: emailId,
             action: action === 'approve' ? 'ACCEPTED' : 'EDITED',
@@ -195,8 +212,14 @@ export async function POST(req: Request) {
         break;
 
       case 'reject':
-        await prisma.feedback.create({
-          data: {
+        // Use upsert to prevent duplicate feedback errors
+        await prisma.feedback.upsert({
+          where: { emailId: emailId },
+          update: {
+            action: 'REJECTED',
+            editDelta: { reason: feedback },
+          },
+          create: {
             userId: session.userId,
             emailId: emailId,
             action: 'REJECTED',
