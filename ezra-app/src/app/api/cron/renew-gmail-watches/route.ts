@@ -21,27 +21,26 @@ export async function GET(request: NextRequest) {
             provider: 'google'
           }
         }
-      },
-      where: {
-        accounts: {
-          some: {
-            provider: 'google',
-            accessToken: {
-              not: null as any
-            }
-          }
-        }
       }
     });
 
-    console.log(`📧 Found ${users.length} users with Gmail access`);
+    // Filter users who have valid Google access tokens
+    const usersWithGmail = users.filter(user => 
+      user.accounts.some(account => 
+        account.provider === 'google' && 
+        account.accessToken && 
+        account.accessToken.length > 0
+      )
+    );
+
+    console.log(`📧 Found ${usersWithGmail.length} users with Gmail access`);
 
     const results = [];
     let successful = 0;
     let failed = 0;
 
     // Renew Gmail watch for each user
-    for (const user of users) {
+    for (const user of usersWithGmail) {
       const oauthAccount = user.accounts.find(account => account.provider === 'google');
       
       if (!oauthAccount || !oauthAccount.accessToken) {
@@ -94,7 +93,7 @@ export async function GET(request: NextRequest) {
     }
 
     const summary = {
-      total: users.length,
+      total: usersWithGmail.length,
       successful,
       failed,
       timestamp: new Date().toISOString()
