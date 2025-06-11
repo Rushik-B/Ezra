@@ -143,7 +143,7 @@ export async function POST(req: Request) {
             data: {
               userId: session.userId,
               emailId: emailId,
-              action: 'SEND_FAILED',
+              action: 'REJECTED',
               editDelta: { 
                 error: sendError instanceof Error ? sendError.message : 'Unknown send error',
                 attemptedContent: replyContent 
