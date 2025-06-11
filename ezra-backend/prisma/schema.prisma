@@ -1,0 +1,200 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")  // your Supabase DATABASE_URL
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  name           String?
+  emailsFetched  Boolean         @default(false)  // Track if initial email fetch is complete
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  accounts       OAuthAccount[]
+  settings       UserSettings?
+  threads        Thread[]
+  feedbacks      Feedback[]
+  autonomyRules  AutonomyRule[]
+  masterPrompts  MasterPrompt[]
+  actionHistory  ActionHistory[]
+  interactionNetworks InteractionNetwork[]
+  strategicRulebooks  StrategicRulebook[]
+}
+
+model OAuthAccount {
+  id                   String    @id @default(cuid())
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId               String
+  provider             String
+  providerAccountId    String
+  accessToken          String
+  refreshToken         String?
+  scope                String?
+  tokenType            String?
+  expiresAt            Int?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([provider, providerAccountId])
+}
+
+model Thread {
+  id           String    @id @default(uuid())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  subject      String
+  snippet      String?
+  emails       Email[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Email {
+  id             String         @id @default(uuid())
+  thread         Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId       String
+  messageId      String         @unique
+  from           String
+  to             String[]
+  cc             String[]       @default([])
+  subject        String
+  body           String         @db.Text // raw HTML/text
+  snippet        String?
+  isSent         Boolean        @default(false)
+  isDraft        Boolean        @default(false)
+  embedding      Embedding?
+  feedback       Feedback?
+  generatedReply GeneratedReply?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Embedding {
+  id         String    @id @default(cuid())
+  email      Email     @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  emailId    String    @unique
+  vector     Json      // store your embedding array here
+  createdAt  DateTime  @default(now())
+}
+
+model GeneratedReply {
+  id              String   @id @default(cuid())
+  email           Email    @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  emailId         String   @unique
+  draft           String   @db.Text
+  confidenceScore Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Feedback {
+  id         String          @id @default(cuid())
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  email      Email           @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  emailId    String          @unique
+  action     FeedbackAction
+  editDelta  Json?           // optional diff or edit metadata
+  createdAt  DateTime        @default(now())
+}
+
+enum FeedbackAction {
+  ACCEPTED
+  EDITED
+  REJECTED
+}
+
+model AutonomyRule {
+  id         String     @id @default(cuid())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  sender     String?    // e.g. specific email or domain wildcard
+  action     ActionType
+  createdAt  DateTime   @default(now())
+}
+
+enum ActionType {
+  DRAFT_ONLY
+  AUTO_SEND
+  IGNORE
+}
+
+model UserSettings {
+  id             String    @id @default(cuid())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String    @unique
+  autonomyLevel  Int       @default(0)   // 0–100 "autonomy dial"
+  gmailHistoryId String?   // Last history ID from Gmail push notifications
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model MasterPrompt {
+  id         String    @id @default(cuid())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  prompt     String    @db.Text
+  version    Int       @default(1)
+  isActive   Boolean   @default(true)
+  isGenerated Boolean  @default(false)  // Whether this was AI-generated or manually created
+  metadata   Json?     // Store generation details like emailsAnalyzed, confidence, etc.
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// NEW - Personalized Operating System: Interaction Network
+model InteractionNetwork {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  content   Json // Stores the structured JSON for contacts and functions
+  version   Int      @default(1)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// NEW - Personalized Operating System: Strategic Rulebook
+model StrategicRulebook {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  content   Json // Stores the IF/THEN rules as structured JSON
+  version   Int      @default(1)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ActionHistory table to track all user actions and AI decisions for the History page
+model ActionHistory {
+  id              String               @id @default(cuid())
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  actionType      ActionHistoryType    // Type of action performed
+  actionSummary   String               // Brief description of the action
+  actionDetails   Json?                // Full details of the action (email content, context, etc.)
+  emailReference  String?              // Reference to related email if applicable
+  confidence      Float?               // AI confidence if applicable
+  undoable        Boolean              @default(false) // Whether this action can be undone
+  promptState     String?              // Master prompt version/state at time of action
+  metadata        Json?                // Additional metadata (sender, subject, etc.)
+  createdAt       DateTime             @default(now())
+  
+  @@index([userId, createdAt]) // Index for efficient querying by user and date
+}
+
+enum ActionHistoryType {
+  EMAIL_SENT          // Email was sent (auto or manually approved)
+  EMAIL_REJECTED      // AI draft was rejected
+  EMAIL_EDITED        // AI draft was edited before sending
+  EMAIL_SNOOZED       // Email action was snoozed
+  EMAIL_ARCHIVED      // Email was archived
+  MASTER_PROMPT_UPDATED // Master prompt was modified
+  AUTONOMY_RULE_ADDED   // New autonomy rule was created
+  SETTINGS_CHANGED      // User settings were modified
+} 
