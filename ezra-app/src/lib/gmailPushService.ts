@@ -49,6 +49,12 @@ export class GmailPushService {
       
       console.log(`✅ Push notifications setup - historyId: ${response.data.historyId}, expiration: ${response.data.expiration}`);
       
+      // Store the initial history ID to avoid processing old emails on first notification
+      if (this.userId) {
+        await this.updateLastHistoryId(this.userId, response.data.historyId);
+        console.log(`📧 Stored initial history ID ${response.data.historyId} for user ${this.userId}`);
+      }
+      
       return {
         historyId: response.data.historyId,
         expiration: response.data.expiration
@@ -104,18 +110,6 @@ export class GmailPushService {
       // Get the last known history ID for this user
       const lastHistoryId = await this.getLastHistoryId(user.id);
       
-      if (!lastHistoryId) {
-        console.log(`No last history ID found for ${user.id}, skipping push notification to avoid full sync.`);
-        // To prevent a full sync on first notification, we can just store the historyId and process next time.
-        await this.updateLastHistoryId(user.id, payload.historyId);
-        return;
-      }
-      
-      if (lastHistoryId >= payload.historyId) {
-        console.log(`📧 History ID ${payload.historyId} already processed for user ${user.id}`);
-        return;
-      }
-
       // Fetch new emails using Gmail service
       const gmailService = new GmailService(
         oauthAccount.accessToken,
@@ -123,8 +117,20 @@ export class GmailPushService {
         user.id
       );
 
-      // Get history of changes since last known history ID
-      const newEmails = await this.getNewEmailsFromHistory(gmailService, lastHistoryId || '1', payload.historyId);
+      let newEmails: any[] = [];
+
+      if (!lastHistoryId) {
+        console.log(`📧 No last history ID found for ${user.id}, fetching recent emails instead of full sync.`);
+        // For first notification, get the most recent emails instead of doing full sync
+        newEmails = await this.getRecentEmails(gmailService, 10); // Get last 10 emails
+      } else {
+        if (lastHistoryId >= payload.historyId) {
+          console.log(`📧 History ID ${payload.historyId} already processed for user ${user.id}`);
+          return;
+        }
+        // Get history of changes since last known history ID
+        newEmails = await this.getNewEmailsFromHistory(gmailService, lastHistoryId, payload.historyId);
+      }
       
       if (newEmails.length > 0) {
         console.log(`📧 Found ${newEmails.length} new emails for user ${user.id}`);
@@ -177,6 +183,53 @@ export class GmailPushService {
       
     } catch (error) {
       console.error('❌ Error processing Gmail push notification:', error);
+    }
+  }
+
+  /**
+   * Get recent emails when no history ID exists (for first-time setup)
+   */
+  private async getRecentEmails(gmailService: GmailService, maxResults: number = 10): Promise<any[]> {
+    try {
+      console.log(`📧 Fetching ${maxResults} most recent emails`);
+      
+      // Get list of recent message IDs
+      const response = await this.gmail.users.messages.list({
+        userId: 'me',
+        labelIds: ['INBOX'],
+        maxResults: maxResults
+      });
+
+      const messages = response.data.messages || [];
+      if (messages.length === 0) {
+        console.log(`📧 No recent emails found`);
+        return [];
+      }
+
+      // Fetch the actual email content
+      const emails = [];
+      for (const message of messages) {
+        try {
+          const fullMessage = await this.gmail.users.messages.get({
+            userId: 'me',
+            id: message.id
+          });
+
+          const parsedEmail = this.parseGmailMessage(fullMessage.data);
+          if (parsedEmail && !parsedEmail.isSent) { // Only process incoming emails
+            emails.push(parsedEmail);
+          }
+        } catch (error) {
+          console.error(`Error fetching recent message ${message.id}:`, error);
+        }
+      }
+
+      console.log(`📧 Found ${emails.length} recent incoming emails`);
+      return emails;
+      
+    } catch (error) {
+      console.error('❌ Error getting recent emails:', error);
+      return [];
     }
   }
 
