@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { QueueItem } from '@/types';
+import { GmailService } from '@/lib/gmail';
 
 export async function GET() {
   try {
@@ -94,44 +95,67 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: 'User google account not found' }, { status: 404 });
         }
 
-        // TODO: TEMPORARILY DISABLED EMAIL SENDING FOR TESTING
-        // Remove the comments below when ready to enable actual email sending
-        /*
+        // Send the email using Gmail API
         const gmailService = new GmailService(oauth.accessToken, oauth.refreshToken || undefined, session.userId);
-        await gmailService.sendEmail({
-          to: email.from,
-          subject: `Re: ${email.subject}`,
-          body: replyContent,
-          inReplyTo: email.messageId,
-          threadId: email.thread.id,
-        });
-        */
         
-        // For now, just log what would be sent and simulate success
-        console.log(`📧 [MOCK SEND] Successfully sent email:`, {
-          to: email.from,
-          subject: `Re: ${email.subject}`,
-          body: replyContent.substring(0, 100) + '...',
-          inReplyTo: email.messageId,
-          threadId: email.thread.id,
-        });
-
-        // Create a mock sent email record in the database (simulate what would happen after real sending)
-        await prisma.email.create({
-          data: {
-            threadId: email.threadId,
-            messageId: `mock-reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            from: session.user?.email || 'user@example.com', // User's email as sender
-            to: [email.from], // Reply to original sender
-            cc: [],
+        console.log(`📧 Sending email to ${email.from}...`);
+        try {
+          const sentMessage = await gmailService.sendEmail({
+            to: email.from,
             subject: `Re: ${email.subject}`,
             body: replyContent,
-            snippet: replyContent.substring(0, 150) + '...',
-            isSent: true, // Mark as sent
-            isDraft: false,
-            createdAt: new Date()
+            inReplyTo: email.messageId,
+            threadId: email.thread.id,
+          });
+          
+          console.log(`✅ Email sent successfully! Message ID: ${sentMessage.id}`);
+
+          // Create a sent email record in the database
+          await prisma.email.create({
+            data: {
+              threadId: email.threadId,
+              messageId: sentMessage.id, // Use real Gmail message ID
+              from: session.user?.email || 'user@example.com', // User's email as sender
+              to: [email.from], // Reply to original sender
+              cc: [],
+              subject: `Re: ${email.subject}`,
+              body: replyContent,
+              snippet: replyContent.substring(0, 150) + '...',
+              isSent: true, // Mark as sent
+              isDraft: false,
+              createdAt: new Date()
+            }
+          });
+          
+        } catch (sendError) {
+          console.error(`❌ Failed to send email:`, sendError);
+          
+          // If it's an authentication error, we should still record the feedback but not create the sent email
+          if (sendError instanceof Error && sendError.message.includes('auth')) {
+            return NextResponse.json({ 
+              error: 'Authentication failed. Please reconnect your Google account.',
+              authError: true 
+            }, { status: 401 });
           }
-        });
+          
+          // For other errors, still record feedback but return error
+          await prisma.feedback.create({
+            data: {
+              userId: session.userId,
+              emailId: emailId,
+              action: 'SEND_FAILED',
+              editDelta: { 
+                error: sendError instanceof Error ? sendError.message : 'Unknown send error',
+                attemptedContent: replyContent 
+              },
+            },
+          });
+          
+          return NextResponse.json({ 
+            error: 'Failed to send email',
+            details: sendError instanceof Error ? sendError.message : 'Unknown error'
+          }, { status: 500 });
+        }
 
         await prisma.feedback.create({
           data: {

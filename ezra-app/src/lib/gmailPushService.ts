@@ -148,9 +148,19 @@ export class GmailPushService {
         // Generate replies for new, non-sent emails
         const replyGenerator = new ReplyGeneratorService();
         for (const emailData of newEmails) {
-          const savedEmail = await prisma.email.findUnique({ where: { messageId: emailData.messageId } });
+          const savedEmail = await prisma.email.findUnique({ 
+            where: { messageId: emailData.messageId },
+            include: { generatedReply: true } // Include existing reply to check
+          });
+          
           // Only generate replies for incoming emails, not emails sent by the user
           if (savedEmail && !savedEmail.isSent) {
+            // Check if we already have a generated reply for this email
+            if (savedEmail.generatedReply) {
+              console.log(`📧 Reply already exists for email ${savedEmail.id}, skipping generation`);
+              continue;
+            }
+            
             console.log(`🤖 Generating reply for new email: ${savedEmail.id}`);
             try {
               const generatedReply = await replyGenerator.generateReply({
