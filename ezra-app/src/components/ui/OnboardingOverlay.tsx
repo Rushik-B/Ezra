@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
   Brain, 
@@ -37,17 +37,7 @@ export const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ onComplete
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
-  // Fetch user onboarding status
-  useEffect(() => {
-    if (!session?.user?.email) return;
-    
-    fetchOnboardingStatus();
-    const interval = setInterval(fetchOnboardingStatus, 3000); // Poll every 3 seconds
-    
-    return () => clearInterval(interval);
-  }, [session]);
-
-  const fetchOnboardingStatus = async () => {
+  const fetchOnboardingStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/user/onboarding-status');
       const data = await response.json();
@@ -114,9 +104,9 @@ export const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ onComplete
         setCurrentStep(inProgressStep?.id || null);
         
         // Check if all steps are completed
-        if (completedSteps === totalSteps) {
+        if (completedSteps === totalSteps && onComplete) {
           setTimeout(() => {
-            onComplete?.();
+            onComplete();
           }, 2000); // Give a moment to show completion
         }
       }
@@ -125,7 +115,17 @@ export const OnboardingOverlay: React.FC<OnboardingOverlayProps> = ({ onComplete
     } finally {
       setLoading(false);
     }
-  };
+  }, [onComplete]);
+
+  // Fetch user onboarding status
+  useEffect(() => {
+    if (!session?.user?.email) return;
+    
+    fetchOnboardingStatus();
+    const interval = setInterval(fetchOnboardingStatus, 3000); // Poll every 3 seconds
+    
+    return () => clearInterval(interval);
+  }, [session, fetchOnboardingStatus]);
 
   if (loading) {
     return (

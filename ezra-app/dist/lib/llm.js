@@ -183,10 +183,8 @@ class LLMService {
         this.logTokenUsage("GenerateText", fullPrompt);
         try {
             const result = await this.executeWithRateLimit(async () => {
-                if (!this.advancedModel) {
-                    throw new Error("Advanced model not properly initialized");
-                }
-                const response = await this.advancedModel.invoke([
+                // Use the stable model instead of advancedModel to prevent parsing errors
+                const response = await this.model.invoke([
                     new messages_1.SystemMessage(systemMessage),
                     new messages_1.HumanMessage(prompt)
                 ]);
