@@ -1,6 +1,6 @@
 import { google } from 'googleapis'
 import { prisma } from './prisma'
-import { EmailContextQuery } from '@/types'
+import { EmailContextQuery } from '@/types/worker'
 
 export interface EmailData {
   messageId: string

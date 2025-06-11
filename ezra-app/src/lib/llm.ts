@@ -2,7 +2,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { getStyleAnalysisPrompt, getReplyGenerationPrompt, readPromptFile } from './prompts';
-import { IncomingEmailScannerOutput } from '@/types';
+import { IncomingEmailScannerOutput } from '@/types/worker';
 import { getEncoding, type Tiktoken } from 'js-tiktoken';
 
 // Global token tracking interface

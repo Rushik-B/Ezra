@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2022"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": false,
+    "sourceMap": false,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "src/worker.ts",
+    "src/lib/redis.ts",
+    "src/lib/queues.ts",
+    "src/lib/prisma.ts",
+    "src/lib/gmail.ts",
+    "src/lib/masterPromptGenerator.ts",
+    "src/lib/replyGenerator.ts",
+    "src/lib/llm.ts",
+    "src/lib/contextEngine.ts",
+    "src/lib/prompts.ts"
+  ],
+  "exclude": [
+    "src/app/**/*",
+    "src/components/**/*",
+    "src/lib/auth.ts",
+    "src/types/index.ts",
+    "src/hooks/**/*",
+    "node_modules"
+  ]
+} 

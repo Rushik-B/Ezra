@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { prisma } from './prisma';
-import { CalendarEvent, CalendarAvailability } from '@/types';
+import { CalendarEvent, CalendarAvailabilityCheck as CalendarAvailability } from '@/types/worker';
 
 export class CalendarService {
   private calendar: any;

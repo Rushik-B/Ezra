@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { ReplyGeneratorService } from '@/lib/replyGenerator';
+import { replyGenerationQueue } from '@/lib/queues';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +17,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email ID is required' }, { status: 400 });
     }
 
-    console.log(`📧 Generating draft reply for email: ${emailId}`);
+    console.log(`📧 Queuing draft reply generation for email: ${emailId}`);
 
     // Get the email
     const email = await prisma.email.findUnique({
       where: { id: emailId },
-      include: { thread: true }
+      include: { thread: true, generatedReply: true }
     });
 
     if (!email) {
@@ -34,30 +34,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access to email' }, { status: 403 });
     }
 
-    // Generate the reply
-    const replyGenerator = new ReplyGeneratorService();
-    const replyResult = await replyGenerator.generateReply({
-      userId: session.userId,
-      incomingEmail: {
-        from: email.from,
-        to: email.to,
-        subject: email.subject,
-        body: email.body,
-        date: email.createdAt
-      }
+    // Check if reply already exists
+    if (email.generatedReply) {
+      console.log(`✅ Draft reply already exists for email: ${emailId}`);
+      return NextResponse.json({
+        success: true,
+        draft: {
+          fullDraft: email.generatedReply.draft,
+          draftPreview: email.generatedReply.draft.substring(0, 150) + (email.generatedReply.draft.length > 150 ? '...' : ''),
+          confidence: email.generatedReply.confidenceScore,
+          reasoning: 'Previously generated'
+        }
+      });
+    }
+
+    // Queue the reply generation job
+    const job = await replyGenerationQueue.add('generate-reply', {
+      emailId,
+      userId: session.userId
+    }, {
+      delay: 0,
+      removeOnComplete: 10,
+      removeOnFail: 5,
     });
 
-    console.log(`✅ Generated draft reply with confidence: ${replyResult.confidence}%`);
+    console.log(`✅ Queued reply generation job ${job.id} for email: ${emailId}`);
 
     return NextResponse.json({
       success: true,
-      draft: {
-        fullDraft: replyResult.reply,
-        draftPreview: replyResult.reply.substring(0, 150) + (replyResult.reply.length > 150 ? '...' : ''),
-        confidence: replyResult.confidence,
-        reasoning: replyResult.reasoning
-      }
-    });
+      message: 'Reply generation started in background',
+      jobId: job.id
+    }, { status: 202 });
 
   } catch (error) {
     console.error('❌ Error generating draft reply:', error);

@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && npm run build:worker",
+    "build:worker": "tsc --project tsconfig.worker.json",
     "start": "next start",
+    "worker": "node dist/worker.js",
     "lint": "next lint",
     "postinstall": "prisma generate"
   },
@@ -34,7 +36,9 @@
     "prisma": "^6.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "bullmq": "^5.33.5",
+    "ioredis": "^5.4.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

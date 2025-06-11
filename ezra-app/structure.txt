@@ -1,8 +1,30 @@
 .
 ├── GMAIL_PUSH_SETUP.md
+├── Procfile
 ├── README.md
+├── dist
+│   ├── lib
+│   │   ├── auth.js
+│   │   ├── calendarService.js
+│   │   ├── contextEngine.js
+│   │   ├── gmail.js
+│   │   ├── gmailPushService.js
+│   │   ├── llm.js
+│   │   ├── masterPromptGenerator.js
+│   │   ├── prisma.js
+│   │   ├── prompts.js
+│   │   ├── queues.js
+│   │   ├── redis.js
+│   │   ├── replyGenerator.js
+│   │   └── utils.js
+│   ├── types
+│   │   ├── index.js
+│   │   └── worker.js
+│   └── worker.js
 ├── eslint.config.mjs
 ├── example-master-prompt.md
+├── heroku_plan.md
+├── logs_result.json
 ├── next-env.d.ts
 ├── next.config.ts
 ├── package-lock.json
@@ -49,8 +71,13 @@
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── webhook
 │   │   │   │       └── route.ts
+│   │   │   ├── jobs
+│   │   │   │   └── status
+│   │   │   │       └── route.ts
 │   │   │   ├── master-prompt
 │   │   │   │   ├── activate
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── auto-generate
 │   │   │   │   │   └── route.ts
 │   │   │   │   ├── ensure
 │   │   │   │   │   └── route.ts
@@ -60,12 +87,20 @@
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
 │   │   │   ├── pos
+│   │   │   │   ├── auto-generate
+│   │   │   │   │   └── route.ts
 │   │   │   │   ├── interaction-network
+│   │   │   │   │   ├── auto-generate
+│   │   │   │   │   │   └── route.ts
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── strategic-rulebook
+│   │   │   │       ├── auto-generate
+│   │   │   │       │   └── route.ts
 │   │   │   │       └── route.ts
 │   │   │   ├── queue
 │   │   │   │   ├── generate-draft
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── generated-reply
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
 │   │   │   ├── test-email
@@ -133,6 +168,8 @@
 │   │   ├── mockData.tsx
 │   │   ├── prisma.ts
 │   │   ├── prompts.ts
+│   │   ├── queues.ts
+│   │   ├── redis.ts
 │   │   ├── replyGenerator.ts
 │   │   └── utils.ts
 │   ├── prompts
@@ -148,12 +185,16 @@
 │   │   ├── strategicRulebookGeneratorPrompt.md
 │   │   ├── styleAnalysisPrompt.md
 │   │   └── styleCompressorPrompt.md
-│   └── types
-│       ├── index.ts
-│       └── next-auth.d.ts
+│   ├── types
+│   │   ├── index.ts
+│   │   ├── next-auth.d.ts
+│   │   └── worker.ts
+│   └── worker.ts
 ├── structure.txt
 ├── tailwind.config.js
 ├── test-email.js
 ├── test-reply-generation.js
 ├── tsconfig.json
-└── tsconfig.tsbuildinfo
+├── tsconfig.tsbuildinfo
+├── tsconfig.worker.json
+└── tsconfig.worker.tsbuildinfo

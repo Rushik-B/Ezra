@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MasterPromptGeneratorService } from '@/lib/masterPromptGenerator';
+import { posGenerationQueue } from '@/lib/queues';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
@@ -16,84 +16,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log(`🚀 Auto-generating POS components for user: ${userId}`);
+    console.log(`🚀 Queuing POS components generation for user: ${userId}`);
 
-    // Initialize the generator service
-    const generator = new MasterPromptGeneratorService();
+    // Queue the POS generation job
+    const job = await posGenerationQueue.add('generate-pos-components', { userId }, {
+      delay: 0,
+      removeOnComplete: 3,
+      removeOnFail: 2,
+    });
 
-    let interactionNetworkGenerated = false;
-    let strategicRulebookGenerated = false;
-
-    // Generate Interaction Network using dedicated endpoint
-    console.log(`🤝 Triggering Interaction Network generation...`);
-    try {
-      const networkResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/pos/interaction-network/auto-generate`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
-        },
-        body: JSON.stringify({ userId })
-      });
-      
-      if (networkResponse.ok) {
-        const networkResult = await networkResponse.json();
-        if (networkResult.success) {
-          interactionNetworkGenerated = true;
-          console.log(`✅ Interaction Network generation completed`);
-        }
-      } else {
-        console.log(`⚠️ Interaction Network generation failed, but continuing...`);
-      }
-    } catch (error) {
-      console.log(`⚠️ Interaction Network generation error: ${error}, but continuing...`);
-    }
-
-    // Wait 5 seconds before generating Strategic Rulebook
-    console.log('⏳ Waiting 5 seconds before generating Strategic Rulebook...');
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
-    // Generate Strategic Rulebook using dedicated endpoint
-    console.log(`📜 Triggering Strategic Rulebook generation...`);
-    try {
-      const rulebookResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/pos/strategic-rulebook/auto-generate`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
-        },
-        body: JSON.stringify({ userId })
-      });
-      
-      if (rulebookResponse.ok) {
-        const rulebookResult = await rulebookResponse.json();
-        if (rulebookResult.success) {
-          strategicRulebookGenerated = true;
-          console.log(`✅ Strategic Rulebook generation completed`);
-        }
-      } else {
-        console.log(`⚠️ Strategic Rulebook generation failed, but continuing...`);
-      }
-    } catch (error) {
-      console.log(`⚠️ Strategic Rulebook generation error: ${error}, but continuing...`);
-    }
-
-    const message = `POS generation complete for user ${userId}`;
-    console.log(`🎉 ${message}`);
+    console.log(`✅ Queued POS generation job ${job.id} for user ${userId}`);
 
     return NextResponse.json({
       success: true,
-      message,
-      components: {
-        interactionNetworkGenerated,
-        strategicRulebookGenerated
-      }
-    });
+      message: 'POS generation started in background',
+      jobId: job.id
+    }, { status: 202 });
 
   } catch (error) {
-    console.error('❌ Error in pos/auto-generate API:', error);
+    console.error('❌ Error queuing POS generation:', error);
     return NextResponse.json({ 
-      error: 'Failed to auto-generate POS components',
+      error: 'Failed to queue POS generation',
       details: error instanceof Error ? error.message : 'Unknown error' 
     }, { status: 500 });
   }
