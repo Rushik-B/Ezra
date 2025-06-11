@@ -12,6 +12,9 @@ export class GmailPushService {
   private gmail: any;
   private auth: any;
   private userId: string;
+  
+  // Simple in-memory lock to prevent concurrent processing of same notification
+  private static processingLocks = new Set<string>();
 
   constructor(accessToken: string, refreshToken?: string, userId?: string) {
     this.userId = userId || '';
@@ -87,6 +90,18 @@ export class GmailPushService {
    * Process a Gmail push notification
    */
   async processPushNotification(payload: PushNotificationPayload): Promise<void> {
+    // Create a unique lock key for this notification
+    const lockKey = `${payload.emailAddress}-${payload.historyId}`;
+    
+    // Check if this notification is already being processed
+    if (GmailPushService.processingLocks.has(lockKey)) {
+      console.log(`📧 Notification ${lockKey} already being processed, skipping duplicate`);
+      return;
+    }
+    
+    // Acquire lock
+    GmailPushService.processingLocks.add(lockKey);
+    
     try {
       console.log(`📧 Processing push notification for ${payload.emailAddress}, historyId: ${payload.historyId}`);
       
@@ -117,6 +132,12 @@ export class GmailPushService {
       // Get the last known history ID for this user
       const lastHistoryId = await this.getLastHistoryId(user.id);
       
+      // CRITICAL: Check if we've already processed this historyId to prevent duplicates
+      if (lastHistoryId && lastHistoryId >= payload.historyId) {
+        console.log(`📧 History ID ${payload.historyId} already processed for user ${user.id} (last: ${lastHistoryId})`);
+        return;
+      }
+      
       // Fetch new emails using Gmail service
       const gmailService = new GmailService(
         oauthAccount.accessToken,
@@ -131,10 +152,6 @@ export class GmailPushService {
         // For first notification, get the most recent emails instead of doing full sync
         newEmails = await this.getRecentEmails(gmailService, 10); // Get last 10 emails
       } else {
-        if (lastHistoryId >= payload.historyId) {
-          console.log(`📧 History ID ${payload.historyId} already processed for user ${user.id}`);
-          return;
-        }
         // Get history of changes since last known history ID
         newEmails = await this.getNewEmailsFromHistory(gmailService, lastHistoryId, payload.historyId);
       }
@@ -145,17 +162,18 @@ export class GmailPushService {
         // Store new emails in database
         await gmailService.storeEmailsInDatabase(user.id, newEmails);
         
-        // Generate replies for new, non-sent emails
+        // Generate replies for new, non-sent emails with proper deduplication
         const replyGenerator = new ReplyGeneratorService();
         for (const emailData of newEmails) {
+          // Use a more robust check that includes database lookup to prevent race conditions
           const savedEmail = await prisma.email.findUnique({ 
             where: { messageId: emailData.messageId },
-            include: { generatedReply: true } // Include existing reply to check
+            include: { generatedReply: true }
           });
           
           // Only generate replies for incoming emails, not emails sent by the user
           if (savedEmail && !savedEmail.isSent) {
-            // Check if we already have a generated reply for this email
+            // Double-check if we already have a generated reply for this email
             if (savedEmail.generatedReply) {
               console.log(`📧 Reply already exists for email ${savedEmail.id}, skipping generation`);
               continue;
@@ -175,14 +193,24 @@ export class GmailPushService {
               });
 
               if (generatedReply.reply) {
-                await prisma.generatedReply.create({
-                  data: {
-                    emailId: savedEmail.id,
-                    draft: generatedReply.reply,
-                    confidenceScore: generatedReply.confidence,
-                  },
-                });
-                console.log(`✅ Reply generated and saved for email ${savedEmail.id}`);
+                // Use upsert instead of create to handle race conditions gracefully
+                try {
+                  await prisma.generatedReply.upsert({
+                    where: { emailId: savedEmail.id },
+                    update: {
+                      draft: generatedReply.reply,
+                      confidenceScore: generatedReply.confidence,
+                    },
+                    create: {
+                      emailId: savedEmail.id,
+                      draft: generatedReply.reply,
+                      confidenceScore: generatedReply.confidence,
+                    },
+                  });
+                  console.log(`✅ Reply generated and saved for email ${savedEmail.id}`);
+                } catch (upsertError) {
+                  console.log(`📧 Reply already exists for email ${savedEmail.id} (race condition handled)`);
+                }
               }
             } catch (replyError) {
               console.error(`❌ Error generating reply for email ${savedEmail.id}:`, replyError);
@@ -190,16 +218,22 @@ export class GmailPushService {
           }
         }
 
-        // Update last history ID
+        // Update last history ID ONLY after successful processing
         await this.updateLastHistoryId(user.id, payload.historyId);
         
         console.log(`✅ Processed ${newEmails.length} new emails via push notification`);
       } else {
         console.log(`📧 No new emails found in history update for user ${user.id}`);
+        // Still update history ID even if no new emails to prevent reprocessing
+        await this.updateLastHistoryId(user.id, payload.historyId);
       }
       
     } catch (error) {
       console.error('❌ Error processing Gmail push notification:', error);
+    } finally {
+      // Always release the lock
+      GmailPushService.processingLocks.delete(lockKey);
+      console.log(`🔓 Released lock for notification ${lockKey}`);
     }
   }
 
