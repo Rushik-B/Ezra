@@ -24,41 +24,105 @@ const onboardingWorker = new Worker<OnboardingJobData>('user-onboarding', async 
   try {
     job.updateProgress(10);
     
-    // Step 1: Check if user already has emails fetched
+    // Get user's current completion status
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { emailsFetched: true }
+      select: { 
+        emailsFetched: true,
+        masterPromptGenerated: true,
+        interactionNetworkGenerated: true,
+        strategicRulebookGenerated: true
+      }
     });
 
-    if (user?.emailsFetched) {
-      console.log(`[ONBOARD] User ${userId} already has emails fetched, skipping email fetch`);
-      job.updateProgress(40);
-    } else {
-      // Step 1: Fetch emails first
-      console.log(`[ONBOARD] Fetching emails for user ${userId}...`);
-      await fetchEmailsForUser(userId);
-      job.updateProgress(40);
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
     }
 
-    // Step 2: Generate Master Prompt
-    console.log(`[ONBOARD] Generating Master Prompt for ${userId}...`);
-    const generator = new MasterPromptGeneratorService();
-    await generator.generateAndSaveMasterPrompt(userId);
-    job.updateProgress(70);
+    console.log(`[ONBOARD] User ${userId} status: emails=${user.emailsFetched}, master=${user.masterPromptGenerated}, network=${user.interactionNetworkGenerated}, rulebook=${user.strategicRulebookGenerated}`);
 
-    // Step 3: Generate POS components
-    console.log(`[ONBOARD] Generating Interaction Network for ${userId}...`);
-    await generator.generateAndSaveInteractionNetwork(userId);
-    job.updateProgress(85);
-    
+    const generator = new MasterPromptGeneratorService();
+
+    // Step 1: Fetch emails if not done
+    if (!user.emailsFetched) {
+      console.log(`[ONBOARD] 📧 Fetching emails for user ${userId}...`);
+      await fetchEmailsForUser(userId);
+      console.log(`[ONBOARD] ✅ Emails fetched successfully for user ${userId}`);
+    } else {
+      console.log(`[ONBOARD] ✅ Emails already fetched for user ${userId}`);
+    }
+    job.updateProgress(30);
+
+    // Step 2: Generate Master Prompt if not done
+    if (!user.masterPromptGenerated) {
+      console.log(`[ONBOARD] 🧠 Generating Master Prompt for user ${userId}...`);
+      try {
+        await generator.generateAndSaveMasterPrompt(userId);
+        
+        // Mark as completed ONLY on success
+        await prisma.user.update({
+          where: { id: userId },
+          data: { masterPromptGenerated: true }
+        });
+        
+        console.log(`[ONBOARD] ✅ Master Prompt generated successfully for user ${userId}`);
+      } catch (error) {
+        console.error(`[ONBOARD] ❌ Master Prompt generation failed for user ${userId}:`, error);
+        throw error; // Let BullMQ retry
+      }
+    } else {
+      console.log(`[ONBOARD] ✅ Master Prompt already generated for user ${userId}`);
+    }
+    job.updateProgress(60);
+
+    // Step 3: Generate Interaction Network if not done
+    if (!user.interactionNetworkGenerated) {
+      console.log(`[ONBOARD] 🤝 Generating Interaction Network for user ${userId}...`);
+      try {
+        await generator.generateAndSaveInteractionNetwork(userId);
+        
+        // Mark as completed ONLY on success
+        await prisma.user.update({
+          where: { id: userId },
+          data: { interactionNetworkGenerated: true }
+        });
+        
+        console.log(`[ONBOARD] ✅ Interaction Network generated successfully for user ${userId}`);
+      } catch (error) {
+        console.error(`[ONBOARD] ❌ Interaction Network generation failed for user ${userId}:`, error);
+        throw error; // Let BullMQ retry
+      }
+    } else {
+      console.log(`[ONBOARD] ✅ Interaction Network already generated for user ${userId}`);
+    }
+    job.updateProgress(80);
+
     // Rate limit delay
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    console.log(`[ONBOARD] Generating Strategic Rulebook for ${userId}...`);
-    await generator.generateAndSaveStrategicRulebook(userId);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Step 4: Generate Strategic Rulebook if not done
+    if (!user.strategicRulebookGenerated) {
+      console.log(`[ONBOARD] 📜 Generating Strategic Rulebook for user ${userId}...`);
+      try {
+        await generator.generateAndSaveStrategicRulebook(userId);
+        
+        // Mark as completed ONLY on success
+        await prisma.user.update({
+          where: { id: userId },
+          data: { strategicRulebookGenerated: true }
+        });
+        
+        console.log(`[ONBOARD] ✅ Strategic Rulebook generated successfully for user ${userId}`);
+      } catch (error) {
+        console.error(`[ONBOARD] ❌ Strategic Rulebook generation failed for user ${userId}:`, error);
+        throw error; // Let BullMQ retry
+      }
+    } else {
+      console.log(`[ONBOARD] ✅ Strategic Rulebook already generated for user ${userId}`);
+    }
     job.updateProgress(100);
     
-    console.log(`[ONBOARD COMPLETE] Onboarding finished for user: ${userId}`);
+    console.log(`[ONBOARD COMPLETE] 🎉 All onboarding steps completed for user: ${userId}`);
   } catch (error) {
     console.error(`[ONBOARD FAILED] Onboarding failed for user ${userId}:`, error);
     // This makes BullMQ retry the job according to our backoff strategy

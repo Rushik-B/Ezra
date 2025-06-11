@@ -253,6 +253,12 @@ export class LLMService {
           new SystemMessage(systemMessage),
           new HumanMessage(prompt)
         ]);
+        
+        // Validate response
+        if (!response || !response.content || typeof response.content !== 'string') {
+          throw new Error(`Invalid LLM response: ${JSON.stringify(response)}`);
+        }
+        
         return response.content as string;
       });
 

@@ -8,21 +8,24 @@ datasource db {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  name           String?
-  emailsFetched  Boolean         @default(false)  // Track if initial email fetch is complete
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  accounts       OAuthAccount[]
-  settings       UserSettings?
-  threads        Thread[]
-  feedbacks      Feedback[]
-  autonomyRules  AutonomyRule[]
-  masterPrompts  MasterPrompt[]
-  actionHistory  ActionHistory[]
-  interactionNetworks InteractionNetwork[]
-  strategicRulebooks  StrategicRulebook[]
+  id                           String          @id @default(uuid())
+  email                        String          @unique
+  name                         String?
+  emailsFetched                Boolean         @default(false)  // Track if initial email fetch is complete
+  masterPromptGenerated        Boolean         @default(false)  // Track if Master Prompt LLM generation is complete
+  interactionNetworkGenerated  Boolean         @default(false)  // Track if Interaction Network LLM generation is complete
+  strategicRulebookGenerated   Boolean         @default(false)  // Track if Strategic Rulebook LLM generation is complete
+  createdAt                    DateTime        @default(now())
+  updatedAt                    DateTime        @updatedAt
+  accounts                     OAuthAccount[]
+  settings                     UserSettings?
+  threads                      Thread[]
+  feedbacks                    Feedback[]
+  autonomyRules                AutonomyRule[]
+  masterPrompts                MasterPrompt[]
+  actionHistory                ActionHistory[]
+  interactionNetworks          InteractionNetwork[]
+  strategicRulebooks           StrategicRulebook[]
 }
 
 model OAuthAccount {

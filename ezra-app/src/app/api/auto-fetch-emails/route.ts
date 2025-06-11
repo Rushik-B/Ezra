@@ -15,16 +15,23 @@ export async function POST() {
     const userId = session.userId
     console.log(`Queuing onboarding process for user: ${userId}`)
 
-    // Check if user already has emails fetched and onboarding complete
+    // Check if user already has complete onboarding
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { emailsFetched: true }
+      select: { 
+        emailsFetched: true,
+        masterPromptGenerated: true,
+        interactionNetworkGenerated: true,
+        strategicRulebookGenerated: true
+      }
     })
 
-    if (user?.emailsFetched) {
-      console.log(`User ${userId} already has emails fetched, skipping auto-fetch`)
+    // Only skip if ALL onboarding steps are complete
+    if (user?.emailsFetched && user?.masterPromptGenerated && 
+        user?.interactionNetworkGenerated && user?.strategicRulebookGenerated) {
+      console.log(`User ${userId} onboarding already complete, skipping auto-fetch`)
       return NextResponse.json({
-        message: 'Emails already fetched for this user',
+        message: 'Onboarding already complete for this user',
         skipped: true
       })
     }
