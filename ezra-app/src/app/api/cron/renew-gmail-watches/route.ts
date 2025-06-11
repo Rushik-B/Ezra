@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
           some: {
             provider: 'google',
             accessToken: {
-              not: null
+              not: null as any
             }
           }
         }
