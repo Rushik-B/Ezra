@@ -30,6 +30,13 @@ export class MasterPromptGeneratorService {
   }
 
   /**
+   * Utility function for delays between LLM calls
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
    * Generate a personalized Master Prompt for a user based on their sent emails
    */
   async generateMasterPrompt(userId: string): Promise<GeneratedMasterPrompt> {
@@ -53,6 +60,8 @@ export class MasterPromptGeneratorService {
       const fullMasterPrompt = await this.generateFullMasterPromptWithLLM(emailCorpus);
 
       // Generate distilled version for user display
+      console.log('⏳ Waiting 5 seconds before generating distilled Master Prompt...');
+      await this.delay(5000);
       console.log('🌀 Generating distilled Master Prompt...');
       const distilledMasterPrompt = await this.llmService.generateDistilledMasterPrompt(fullMasterPrompt);
 
@@ -181,8 +190,13 @@ export class MasterPromptGeneratorService {
 
       console.log(`✅ Master Prompt v${nextVersion} saved for user ${userId}`);
 
-      // ALSO GENERATE AND SAVE THE OTHER POS COMPONENTS
+      // ALSO GENERATE AND SAVE THE OTHER POS COMPONENTS WITH DELAYS
+      console.log(`⏳ Waiting 5 seconds before generating Interaction Network...`);
+      await this.delay(5000);
       await this.generateAndSaveInteractionNetwork(userId);
+      
+      console.log(`⏳ Waiting 5 seconds before generating Strategic Rulebook...`);
+      await this.delay(5000);
       await this.generateAndSaveStrategicRulebook(userId);
 
       return {
@@ -376,8 +390,10 @@ export class MasterPromptGeneratorService {
 
       if (existingPrompt) {
         console.log(`✅ User ${userId} already has master prompt v${existingPrompt.version}`);
-        // Also check for the other components
+        // Also check for the other components with delays
         await this.ensureUserHasInteractionNetwork(userId);
+        console.log(`⏳ Waiting 5 seconds before checking Strategic Rulebook...`);
+        await this.delay(5000);
         await this.ensureUserHasStrategicRulebook(userId);
         return true;
       }
