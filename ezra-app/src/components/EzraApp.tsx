@@ -29,29 +29,9 @@ export const EzraApp: React.FC = () => {
 
       try {
         setIsAutoFetching(true);
-        setAutoFetchStatus('Initializing your AI assistant...');
-        
-        // First, ensure user has a master prompt
-        try {
-          const masterPromptResponse = await fetch('/api/master-prompt/ensure', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          if (masterPromptResponse.ok) {
-            const masterPromptData = await masterPromptResponse.json();
-            if (!masterPromptData.hasPrompt) {
-              console.log('⚠️ User needs more emails for master prompt generation');
-            }
-          }
-        } catch (error) {
-          console.warn('Master prompt check failed, continuing with email fetch:', error);
-        }
-        
         setAutoFetchStatus('Syncing with your email...');
         
+        // Start the background onboarding process (email fetch + master prompt generation)
         const response = await fetch('/api/auto-fetch-emails', {
           method: 'POST',
           headers: {
@@ -61,24 +41,21 @@ export const EzraApp: React.FC = () => {
 
         const data = await response.json();
         
-        if (data.skipped || data.inProgress) {
-          setAutoFetchStatus('');
+        if (data.skipped) {
+          setAutoFetchStatus('Already connected to your email!');
           setAutoFetchCompleted(true);
-        } else if (response.ok) {
-          let statusMessage = `Connected! Analyzed ${data.emailCount} emails.`;
-          
-          if (data.masterPromptGenerated) {
-            statusMessage += 'Ezra has been trained successfully :)';
-          }
-          
-          setAutoFetchStatus(statusMessage);
+          setTimeout(() => setAutoFetchStatus(''), 3000);
+        } else if (response.ok && response.status === 202) {
+          // Background job started successfully
+          setAutoFetchStatus('Processing your emails in the background...');
           setAutoFetchCompleted(true);
           
-          // Clear status after longer time if Master Prompt was generated
-          const clearDelay = data.masterPromptGenerated ? 5000 : 3000;
+          console.log(`🎯 Onboarding job ${data.jobId} started successfully`);
+          
+          // Clear status after 5 seconds
           setTimeout(() => {
             setAutoFetchStatus('');
-          }, clearDelay);
+          }, 5000);
         } else {
           console.error('Auto-fetch failed:', data);
           setAutoFetchStatus('Connection failed. You can manually sync later.');
