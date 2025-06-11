@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Clock, RotateCcw, X, ShieldCheck, Trash2, Edit3, Settings, AlertTriangle, Mail, Filter, ArrowRight } from 'lucide-react';
+import { OnboardingOverlay } from '@/components/ui/OnboardingOverlay';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 
 interface HistoryItem {
   id: string;
@@ -17,6 +19,7 @@ interface HistoryItem {
 }
 
 export const HistoryPage: React.FC = () => {
+  const { isOnboardingComplete, loading: onboardingLoading } = useOnboardingStatus();
   const [filter, setFilter] = useState('7'); // Days filter: '1', '7', '30'
   const [actionTypeFilter, setActionTypeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -200,6 +203,11 @@ export const HistoryPage: React.FC = () => {
       </div>
     );
   };
+
+  // Show onboarding overlay if not complete
+  if (!onboardingLoading && !isOnboardingComplete) {
+    return <OnboardingOverlay />;
+  }
 
   return (
     <div className="space-y-8 w-full max-w-none">

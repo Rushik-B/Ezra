@@ -3,8 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Clock, Edit3, Mail, X, Send, Trash2, MessageSquare, CheckCircle2, ArrowRight } from 'lucide-react';
 import { QueueItem } from '@/types';
+import { OnboardingOverlay } from '@/components/ui/OnboardingOverlay';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 
 export const QueuePage: React.FC = () => {
+  const { isOnboardingComplete, loading: onboardingLoading } = useOnboardingStatus();
   const [filter, setFilter] = useState<'all' | 'needs-attention' | 'auto-approved' | 'snoozed'>('all');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [queueItems, setQueueItems] = useState<QueueItem[]>([]);
@@ -489,6 +492,11 @@ export const QueuePage: React.FC = () => {
       </div>
     );
   };
+
+  // Show onboarding overlay if not complete
+  if (!onboardingLoading && !isOnboardingComplete) {
+    return <OnboardingOverlay />;
+  }
 
   return (
     <div className="space-y-8">

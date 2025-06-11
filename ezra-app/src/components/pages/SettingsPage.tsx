@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Send } from 'lucide-react';
 import Link from 'next/link';
+import { OnboardingOverlay } from '@/components/ui/OnboardingOverlay';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 
 type DayKey = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
 type WorkingHours = Record<DayKey, { start: string; end: string; active: boolean }>;
 
 export const SettingsPage: React.FC = () => {
+  const { isOnboardingComplete, loading: onboardingLoading } = useOnboardingStatus();
   const [workingHours, setWorkingHours] = useState<WorkingHours>({
     Mon: { start: '09:00', end: '17:00', active: true },
     Tue: { start: '09:00', end: '17:00', active: true },
@@ -26,6 +29,11 @@ export const SettingsPage: React.FC = () => {
       [day]: { ...prev[day], [field]: value },
     }));
   };
+
+  // Show onboarding overlay if not complete
+  if (!onboardingLoading && !isOnboardingComplete) {
+    return <OnboardingOverlay />;
+  }
 
   return (
     <div className="p-6 space-y-8">

@@ -10,6 +10,8 @@ import {
   Users,
   ListChecks,
 } from 'lucide-react';
+import { OnboardingOverlay } from '@/components/ui/OnboardingOverlay';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -52,6 +54,7 @@ type TabId = typeof tabs[number]['id'];
 /* ------------------------------------------------------------------ */
 export const VoiceRulesPage: React.FC = () => {
   const { data: session } = useSession();
+  const { isOnboardingComplete, loading: onboardingLoading } = useOnboardingStatus();
 
   /* ---------------------------- state ---------------------------- */
   const [activeTab, setActiveTab] = useState<TabId>('master-prompt');
@@ -240,6 +243,11 @@ export const VoiceRulesPage: React.FC = () => {
   };
 
   /* -------------------------- rendering -------------------------- */
+  // Show onboarding overlay if not complete
+  if (!onboardingLoading && !isOnboardingComplete) {
+    return <OnboardingOverlay />;
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
