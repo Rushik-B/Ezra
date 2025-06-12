@@ -11,10 +11,10 @@ export const FeedbackPage: React.FC = () => {
             <Heart className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            We'd Love Your Feedback
+            Feedback!
           </h1>
           <p className="text-xl text-gray-600 leading-relaxed">
-            Feedback and opinions are very greatly appreciated. Please contact me by:
+            I would love to hear your thoughts and feedback on Ezra :) Please contact me by:
           </p>
         </div>
 
@@ -32,9 +32,8 @@ export const FeedbackPage: React.FC = () => {
                   href="mailto:rushik@iitk.ac.in" 
                   className="text-blue-600 hover:text-blue-700 font-medium text-lg transition-colors"
                 >
-                  rushik@iitk.ac.in
+                  rushik_behal@sfu.ca
                 </a>
-                <p className="text-gray-500 text-sm mt-1">Best for detailed feedback and suggestions</p>
               </div>
             </div>
           </div>
@@ -48,12 +47,11 @@ export const FeedbackPage: React.FC = () => {
               <div className="flex-1">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Phone</h3>
                 <a 
-                  href="tel:+919718271221" 
+                  href="tel:+17788623564" 
                   className="text-emerald-600 hover:text-emerald-700 font-medium text-lg transition-colors"
                 >
-                  +91 97182 71221
+                  +1 778 862 3564
                 </a>
-                <p className="text-gray-500 text-sm mt-1">Quick questions and urgent feedback</p>
               </div>
             </div>
           </div>
@@ -64,8 +62,7 @@ export const FeedbackPage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
             <MessageCircle className="w-8 h-8 text-purple-600 mx-auto mb-4" />
             <p className="text-gray-700 leading-relaxed">
-              Your feedback helps make Ezra better for everyone. Whether it's a bug report, 
-              feature request, or just your thoughts on the experience - every message matters!
+              Your feedback helps make Ezra better for everyone. Whether it's a bug, feture request, or you just want to chat, I'd absolutely love to hear from you!
             </p>
           </div>
         </div>
