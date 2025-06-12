@@ -180,6 +180,14 @@ export class GmailService {
       referencesHeader = inReplyTo;
     }
 
+    // Convert plain text to HTML format for proper email display
+    // This preserves the LLM's intended formatting by converting line breaks to HTML
+    const htmlBody = body
+      .replace(/\n\n/g, '</p><p>') // Double line breaks become paragraph breaks
+      .replace(/\n/g, '<br>') // Single line breaks become <br> tags
+      .replace(/^/, '<p>') // Add opening paragraph tag at start
+      .replace(/$/, '</p>'); // Add closing paragraph tag at end
+
     const rawMessage = [
       `To: ${to}`,
       `Subject: ${subject}`,
@@ -188,7 +196,7 @@ export class GmailService {
       'Content-Type: text/html; charset=utf-8',
       'MIME-Version: 1.0',
       '',
-      body,
+      htmlBody,
     ]
       .filter(Boolean)
       .join('\n');
@@ -213,6 +221,8 @@ export class GmailService {
       console.log(`   In-Reply-To: ${inReplyTo || 'none'}`);
       console.log(`   References: ${referencesHeader || 'none'}`);
       console.log(`   Thread ID: ${threadId || 'none'}`);
+      console.log(`📧 Original body (first 200 chars): ${body.substring(0, 200)}...`);
+      console.log(`📧 HTML formatted body (first 200 chars): ${htmlBody.substring(0, 200)}...`);
       
       const response = await this.gmail.users.messages.send({
         userId: 'me',

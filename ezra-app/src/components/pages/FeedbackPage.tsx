@@ -14,7 +14,7 @@ export const FeedbackPage: React.FC = () => {
             Feedback!
           </h1>
           <p className="text-xl text-gray-600 leading-relaxed">
-            I would love to hear your thoughts and feedback on Ezra :) Please contact me by:
+            I'd love to hear your thoughts and feedback on Ezra :) Please contact me by:
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export const FeedbackPage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-200">
             <MessageCircle className="w-8 h-8 text-purple-600 mx-auto mb-4" />
             <p className="text-gray-700 leading-relaxed">
-              Your feedback helps make Ezra better for everyone. Whether it's a bug, feture request, or you just want to chat, I'd absolutely love to hear from you!
+              Your feedback helps make Ezra better for everyone. Whether it's a bug, feature request, or you just want to chat, I'd absolutely love to hear from you!
             </p>
           </div>
         </div>

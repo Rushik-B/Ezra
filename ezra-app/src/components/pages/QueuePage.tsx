@@ -5,6 +5,7 @@ import { ShieldCheck, Clock, Edit3, Mail, X, Send, Trash2, MessageSquare, CheckC
 import { QueueItem } from '@/types';
 import { OnboardingOverlay } from '@/components/ui/OnboardingOverlay';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+import { useSession } from 'next-auth/react';
 
 // Toast notification component
 const Toast: React.FC<{ 
@@ -50,6 +51,22 @@ export const QueuePage: React.FC = () => {
   const [rejectFeedback, setRejectFeedback] = useState('');
   const [showEmailEditor, setShowEmailEditor] = useState<QueueItem | null>(null);
   const [showEmailViewer, setShowEmailViewer] = useState<QueueItem | null>(null);
+  const { data: session } = useSession();
+  const fullName = session?.user?.name ?? '';
+  const firstName = fullName.split(' ')[0] || 'there';
+
+  //get the user's email
+  const email = session?.user?.email ?? '';
+
+
+  //time of day greeting
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12
+      ? 'morning'
+      : hour < 18
+      ? 'afternoon'
+      : 'evening';
 
   // Animation and feedback states
   const [processingItems, setProcessingItems] = useState<Set<string>>(new Set());
@@ -669,10 +686,10 @@ export const QueuePage: React.FC = () => {
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
           <div className="flex-1 mb-6 lg:mb-0">
             <h1 className="text-3xl font-semibold text-gray-900 mb-2">
-              Inbox Intelligence
+            Good {greeting}, {firstName}
             </h1>
             <p className="text-gray-600 max-w-2xl leading-relaxed">
-              AI-powered email management dashboard. Review, approve, and manage your automated email responses.
+            Ezra wrote the replies — you hit send. That's teamwork.
             </p>
           </div>
           

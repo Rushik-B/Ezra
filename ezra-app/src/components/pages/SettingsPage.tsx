@@ -28,8 +28,8 @@ export const SettingsPage: React.FC = () => {
               Settings Under Development
             </h3>
             <p className="text-gray-600 dark:text-gray-400 max-w-md">
-              We're working hard to bring you comprehensive settings and customization options. 
-              Check back soon for exciting new features! :)
+              Working hard to bring you comprehensive settings and customization options, along with a host of privacy settings. 
+               
             </p>
           </div>
           <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">

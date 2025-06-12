@@ -3,6 +3,8 @@
 import React from 'react';
 import { MessageCircle, Zap } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar/sidebar';
+import logo from '@/components/assets/logo.png';
+import Image from 'next/image';
 
 interface TopBarProps {
   onLogoClick?: () => void;
@@ -19,11 +21,10 @@ export const TopBar: React.FC<TopBarProps> = ({ onLogoClick, onFeedbackClick }) 
           onClick={onLogoClick}
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
         >
-          <div className="flex items-center justify-center w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-elegant">
-            <Zap className="text-white h-5 w-5" />
-          </div>
+          <Image src={logo} alt="Logo" className="w-8 h-8 object-contain" />
+
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 tracking-tight">EZRA</h1>
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight">EZRA</h1>
           </div>
         </button>
       </div>

@@ -231,7 +231,7 @@ export const MetricsPage: React.FC = () => {
             Coming Soon 👀
           </p>
           <p className="text-sm text-gray-500">
-            We&apos;re building powerful insights and analytics to help you understand your AI&apos;s performance.
+            This will be a powerful tool to help you understand your AI's performance. Shipping soon!
           </p>
         </div>
       </div>
