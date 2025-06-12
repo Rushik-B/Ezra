@@ -32,13 +32,27 @@ class ReplyGeneratorService {
             // Get user's Master Prompt
             const masterPrompt = await this.getMasterPrompt(params.userId);
             console.log(`📝 Retrieved Master Prompt (length: ${masterPrompt.length})`);
-            // Get email history with the specific sender for style analysis
-            const emailHistory = await this.fetchEmailHistory(params.userId, params.incomingEmail.from);
-            console.log(`📧 Found ${emailHistory.length} historical emails with sender for style analysis`);
-            // Build email context for style analysis
+            // Get conversation thread if available, otherwise fall back to sender history
+            let emailHistory = [];
+            let threadContext = [];
+            if (params.incomingEmail.threadId) {
+                // Fetch full conversation thread for complete context
+                threadContext = await this.fetchConversationThread(params.userId, params.incomingEmail.threadId);
+                console.log(`🧵 Found ${threadContext.length} emails in conversation thread`);
+                // Also get historical emails with sender for style analysis
+                emailHistory = await this.fetchEmailHistory(params.userId, params.incomingEmail.from);
+                console.log(`📧 Found ${emailHistory.length} historical emails with sender for style analysis`);
+            }
+            else {
+                // No thread context, use sender history
+                emailHistory = await this.fetchEmailHistory(params.userId, params.incomingEmail.from);
+                console.log(`📧 Found ${emailHistory.length} historical emails with sender for style analysis`);
+            }
+            // Build email context - use thread context if available, otherwise sender history
             const emailContext = {
                 incomingEmail: params.incomingEmail,
-                historicalEmails: emailHistory
+                historicalEmails: threadContext.length > 0 ? threadContext : emailHistory,
+                conversationThread: threadContext.length > 0 ? threadContext : undefined
             };
             // Generate style context using the compression approach
             let styleContext = '';
@@ -222,6 +236,58 @@ When generating replies, give HIGHEST PRIORITY to any instructions marked with "
         catch (error) {
             console.error('Error fetching master prompt:', error);
             return (0, prompts_1.getDefaultMasterPrompt)();
+        }
+    }
+    /**
+     * Fetches the full conversation thread for better context
+     * This provides the complete conversation history chronologically
+     */
+    async fetchConversationThread(userId, threadId, currentEmailId) {
+        try {
+            console.log(`🧵 Fetching full conversation thread: ${threadId} for user: ${userId}`);
+            // Get all emails in this thread, ordered chronologically
+            const threadEmails = await prisma_1.prisma.email.findMany({
+                where: {
+                    thread: {
+                        id: threadId,
+                        userId
+                    }
+                },
+                orderBy: {
+                    createdAt: 'asc' // Chronological order - oldest first
+                },
+                select: {
+                    id: true,
+                    from: true,
+                    to: true,
+                    subject: true,
+                    body: true,
+                    createdAt: true,
+                    isSent: true,
+                    messageId: true
+                }
+            });
+            console.log(`🧵 Found ${threadEmails.length} emails in conversation thread`);
+            // Filter out the current email if provided (we don't want to include the email we're replying to)
+            const conversationHistory = threadEmails
+                .filter(email => currentEmailId ? email.id !== currentEmailId : true)
+                .map(email => ({
+                from: email.from,
+                to: email.to,
+                subject: email.subject,
+                body: email.body,
+                date: email.createdAt,
+                isSent: email.isSent
+            }));
+            if (conversationHistory.length > 0) {
+                console.log(`📅 Thread spans: ${conversationHistory[0].date.toISOString()} to ${conversationHistory[conversationHistory.length - 1].date.toISOString()}`);
+                console.log(`📧 Thread participants: ${[...new Set(conversationHistory.flatMap(e => [e.from, ...e.to]))].join(', ')}`);
+            }
+            return conversationHistory;
+        }
+        catch (error) {
+            console.error('Error fetching conversation thread:', error);
+            return [];
         }
     }
     /**

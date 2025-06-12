@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { ChevronDown, User, Settings as SettingsIcon, Briefcase, LogOut, Zap } from 'lucide-react';
+import { ChevronDown, Settings as SettingsIcon, LogOut, Zap } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar/sidebar';
 
 interface TopBarProps {
@@ -78,16 +78,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onLogoClick }) => {
               
               <div className="py-2">
                 <a href="#" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <User size={16} className="mr-3 text-gray-500" /> 
-                  Account Settings
-                </a>
-                <a href="#" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <Briefcase size={16} className="mr-3 text-gray-500" /> 
-                  Integrations
-                </a>
-                <a href="#" className="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer">
                   <SettingsIcon size={16} className="mr-3 text-gray-500" /> 
-                  Preferences
+                  Settings
                 </a>
               </div>
               

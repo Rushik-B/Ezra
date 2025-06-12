@@ -537,6 +537,19 @@ RESPONSE GUIDANCE:
         const styleContext = styleSummary
             ? `Communication Style Analysis:\n${styleSummary}\n`
             : "No previous communication history available.\n";
+        // Build conversation thread context if available
+        const threadContext = emailContext.conversationThread && emailContext.conversationThread.length > 0
+            ? `\nCONVERSATION THREAD HISTORY (chronological order):\n${emailContext.conversationThread.map((email, index) => {
+                const direction = email.isSent ? "[YOU SENT]" : "[THEY SENT]";
+                const date = email.date.toLocaleDateString();
+                return `${index + 1}. ${direction} on ${date}
+From: ${email.from}
+To: ${email.to.join(', ')}
+Subject: ${email.subject}
+Content: ${email.body.substring(0, 300)}${email.body.length > 300 ? '...' : ''}
+---`;
+            }).join('\n')}\n`
+            : "\nNo conversation thread history available.\n";
         try {
             console.log("🔧 Formatting prompt with variables...");
             const prompt = await replyGenerationPrompt.format({
@@ -547,6 +560,7 @@ RESPONSE GUIDANCE:
                 emailBody: emailContext.incomingEmail.body,
                 emailDate: emailContext.incomingEmail.date.toISOString(),
                 styleContext,
+                threadContext,
                 contextualDraftInput: contextualDraft || ''
             });
             console.log("📤 Sending request to Gemini LLM...");

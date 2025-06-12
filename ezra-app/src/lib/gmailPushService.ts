@@ -189,6 +189,7 @@ export class GmailPushService {
                   subject: emailData.subject,
                   body: emailData.body,
                   date: new Date(emailData.date),
+                  threadId: savedEmail.threadId, // Add thread ID for conversation context
                 },
               });
 

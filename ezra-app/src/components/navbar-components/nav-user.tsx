@@ -1,13 +1,16 @@
 "use client"
 
 import {
-  BadgeCheck,
-  Bell,
+  BarChart3,
+  Clock,
   ChevronsUpDown,
-  CreditCard,
+  Inbox,
   LogOut,
-  Sparkles,
+  Settings2,
+  Settings,
 } from "lucide-react"
+import { signOut } from "next-auth/react"
+import { PageType } from "@/types"
 
 import {
   Avatar,
@@ -32,12 +35,14 @@ import {
 
 export function NavUser({
   user,
+  setActivePage,
 }: {
   user: {
     name: string
     email: string
     avatar: string
   }
+  setActivePage?: (page: PageType) => void
 }) {
   const { isMobile } = useSidebar()
 
@@ -81,28 +86,32 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
+              <DropdownMenuItem onClick={() => setActivePage?.('queue')}>
+                <Inbox />
+                Inbox
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActivePage?.('history')}>
+                <Clock />
+                Activity
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActivePage?.('metrics')}>
+                <BarChart3 />
+                Analytics
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActivePage?.('voice')}>
+                <Settings2 />
+                Voice & Rules
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActivePage?.('settings')}>
+                <Settings />
+                Settings
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => signOut()}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 focus:text-red-700 focus:bg-red-50"
+            >
               <LogOut />
               Log out
             </DropdownMenuItem>

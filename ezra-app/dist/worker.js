@@ -194,7 +194,8 @@ const replyWorker = new bullmq_1.Worker('reply-generation', async (job) => {
                 to: email.to,
                 subject: email.subject,
                 body: email.body,
-                date: email.createdAt
+                date: email.createdAt,
+                threadId: email.threadId // Add thread ID for conversation context
             }
         });
         job.updateProgress(80);

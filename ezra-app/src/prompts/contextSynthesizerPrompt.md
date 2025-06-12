@@ -13,6 +13,10 @@ You are **ContextSynthesizer-02**, an elite AI strategist. Your expertise is in 
 - Date: {emailDate}
 - Body: {emailBody}
 
+**{threadContext}**: Full conversation thread history showing the complete chronological exchange between you and the sender. Use this to understand the context, previous messages, and ongoing conversation flow.
+
+
+
 **2. Raw Contextual Information (from email/calendar analysis):**
 {rawContextualInfo}
 

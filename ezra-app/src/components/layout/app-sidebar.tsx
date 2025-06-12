@@ -156,7 +156,7 @@ export function AppSidebar({ activePage, setActivePage, ...props }: AppSidebarPr
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={user} />
+        <NavUser user={user} setActivePage={setActivePage} />
       </SidebarFooter>
     </Sidebar>
   )

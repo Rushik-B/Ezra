@@ -224,7 +224,8 @@ const replyWorker = new Worker<ReplyGenerationJobData>('reply-generation', async
         to: email.to,
         subject: email.subject,
         body: email.body,
-        date: email.createdAt
+        date: email.createdAt,
+        threadId: email.threadId // Add thread ID for conversation context
       }
     });
 

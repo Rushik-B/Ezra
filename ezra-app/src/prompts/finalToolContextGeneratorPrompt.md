@@ -13,6 +13,10 @@ You are **ContextCompressor-01**, an expert information architect specializing i
 - Date: {emailDate}
 - Body: {emailBody}
 
+**{threadContext}**: Full conversation thread history showing the complete chronological exchange between you and the sender. Use this to understand the context, previous messages, and ongoing conversation flow.
+
+
+
 **Scanner Analysis:**
 - Intent: {primaryIntent}
 - Urgency: {urgencyLevel}
@@ -26,6 +30,8 @@ You are **ContextCompressor-01**, an expert information architect specializing i
 
 **Calendar Context:**
 {calendarContext}
+
+
 
 ---
 

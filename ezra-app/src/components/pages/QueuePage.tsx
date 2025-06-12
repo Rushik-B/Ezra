@@ -1,10 +1,44 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Clock, Edit3, Mail, X, Send, Trash2, MessageSquare, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Clock, Edit3, Mail, X, Send, Trash2, MessageSquare, CheckCircle2, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 import { QueueItem } from '@/types';
 import { OnboardingOverlay } from '@/components/ui/OnboardingOverlay';
 import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+
+// Toast notification component
+const Toast: React.FC<{ 
+  message: string; 
+  type: 'success' | 'error' | 'info'; 
+  onClose: () => void;
+  isVisible: boolean;
+}> = ({ message, type, onClose, isVisible }) => {
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, onClose]);
+
+  const bgColor = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+  const icon = type === 'success' ? <CheckCircle size={20} /> : type === 'error' ? <X size={20} /> : <Mail size={20} />;
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 transform transition-all duration-500 ease-out ${
+      isVisible ? 'translate-x-0 opacity-100 scale-100' : 'translate-x-full opacity-0 scale-95'
+    }`}>
+      <div className={`${bgColor} text-white px-6 py-4 rounded-xl shadow-lg backdrop-blur-sm flex items-center space-x-3 max-w-md`}>
+        {icon}
+        <span className="font-medium">{message}</span>
+        <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const QueuePage: React.FC = () => {
   const { isOnboardingComplete, loading: onboardingLoading } = useOnboardingStatus();
@@ -16,6 +50,23 @@ export const QueuePage: React.FC = () => {
   const [rejectFeedback, setRejectFeedback] = useState('');
   const [showEmailEditor, setShowEmailEditor] = useState<QueueItem | null>(null);
   const [showEmailViewer, setShowEmailViewer] = useState<QueueItem | null>(null);
+
+  // Animation and feedback states
+  const [processingItems, setProcessingItems] = useState<Set<string>>(new Set());
+  const [successItems, setSuccessItems] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean }>({
+    message: '',
+    type: 'info',
+    visible: false
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type, visible: true });
+  };
+
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, visible: false }));
+  };
 
   // Fetch queue items on component mount
   useEffect(() => {
@@ -62,6 +113,10 @@ export const QueuePage: React.FC = () => {
       const item = queueItems.find(q => q.id === itemId);
       if (!item?.metadata?.emailId) return;
 
+      // Start loading animation
+      setProcessingItems(prev => new Set(prev).add(itemId));
+      showToast('Sending email...', 'info');
+
       const response = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,11 +127,40 @@ export const QueuePage: React.FC = () => {
       });
 
       if (response.ok) {
-        // Remove item from queue as it's been actioned
-        setQueueItems(prev => prev.filter(queueItem => queueItem.id !== itemId));
+        // Show success animation
+        setProcessingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+        setSuccessItems(prev => new Set(prev).add(itemId));
+        showToast(`✅ Email sent successfully to ${item.metadata.from}!`, 'success');
+        
+        // Remove from success state and queue after animation
+        setTimeout(() => {
+          setSuccessItems(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(itemId);
+            return newSet;
+          });
+          setQueueItems(prev => prev.filter(queueItem => queueItem.id !== itemId));
+        }, 1500);
+      } else {
+        setProcessingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+        showToast('Failed to send email. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error approving item:', error);
+      setProcessingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+      showToast('Error sending email. Please try again.', 'error');
     }
   };
 
@@ -110,6 +194,10 @@ export const QueuePage: React.FC = () => {
       const item = queueItems.find(q => q.id === itemId);
       if (!item?.metadata?.emailId) return;
 
+      // Start loading animation
+      setProcessingItems(prev => new Set(prev).add(itemId));
+      showToast('Sending edited email...', 'info');
+
       const response = await fetch('/api/queue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,12 +209,41 @@ export const QueuePage: React.FC = () => {
       });
 
       if (response.ok) {
-        // Remove item from queue
-        setQueueItems(prev => prev.filter(queueItem => queueItem.id !== itemId));
+        // Show success animation
+        setProcessingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+        setSuccessItems(prev => new Set(prev).add(itemId));
+        showToast(`✅ Edited email sent successfully to ${item.metadata.from}!`, 'success');
         setShowEmailEditor(null);
+        
+        // Remove from success state and queue after animation
+        setTimeout(() => {
+          setSuccessItems(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(itemId);
+            return newSet;
+          });
+          setQueueItems(prev => prev.filter(queueItem => queueItem.id !== itemId));
+        }, 1500);
+      } else {
+        setProcessingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
+        showToast('Failed to send edited email. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error sending edited email:', error);
+      setProcessingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
+      showToast('Error sending edited email. Please try again.', 'error');
     }
   };
   
@@ -412,11 +529,16 @@ export const QueuePage: React.FC = () => {
 
   // Email Queue Card Component
   const EmailQueueCard: React.FC<{ item: QueueItem; onAction: (id: string, action: string) => void }> = ({ item, onAction }) => {
+    const isProcessing = processingItems.has(item.id);
+    const isSuccess = successItems.has(item.id);
     
     return (
       <div 
-        className="group bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-elegant-md transition-all duration-300 cursor-pointer shadow-elegant"
-        onClick={() => setShowEmailViewer(item)}
+        className={`group bg-white border rounded-2xl p-6 transition-all duration-500 cursor-pointer shadow-elegant
+          ${isProcessing ? 'border-blue-300 bg-blue-50/30 animate-pulse' : 
+            isSuccess ? 'border-emerald-300 bg-emerald-50/30 scale-[1.02]' : 
+            'border-gray-200 hover:shadow-elegant-md'}`}
+        onClick={() => !isProcessing && !isSuccess && setShowEmailViewer(item)}
       >
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
@@ -461,28 +583,67 @@ export const QueuePage: React.FC = () => {
         )}
         
         <div className="flex justify-between items-center">
-          <div className="text-xs text-blue-600 font-medium flex items-center">
-            <span>Click to review</span>
-            <ArrowRight size={12} className="ml-2" />
+          <div className={`text-xs font-medium flex items-center transition-all duration-300 ${
+            isProcessing ? 'text-blue-600' : 
+            isSuccess ? 'text-emerald-600' : 
+            'text-blue-600'
+          }`}>
+            {isProcessing ? (
+              <>
+                <Loader2 size={12} className="mr-2 animate-spin" />
+                <span>Sending email...</span>
+              </>
+            ) : isSuccess ? (
+              <>
+                <CheckCircle size={12} className="mr-2" />
+                <span>Email sent successfully!</span>
+              </>
+            ) : (
+              <>
+                <span>Click to review</span>
+                <ArrowRight size={12} className="ml-2" />
+              </>
+            )}
           </div>
           <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => onAction(item.id, 'approve')}
-              className="px-4 py-2 text-xs font-medium text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg flex items-center transition-colors shadow-elegant cursor-pointer"
+              disabled={isProcessing || isSuccess}
+              className={`px-4 py-2 text-xs font-medium rounded-lg flex items-center transition-all duration-300 shadow-elegant
+                ${isProcessing || isSuccess 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'text-white bg-emerald-500 hover:bg-emerald-600 cursor-pointer hover:scale-105'
+                }`}
             >
-              <ShieldCheck size={12} className="mr-1.5" />
-              Approve
+              {isProcessing ? (
+                <Loader2 size={12} className="mr-1.5 animate-spin" />
+              ) : isSuccess ? (
+                <CheckCircle size={12} className="mr-1.5" />
+              ) : (
+                <ShieldCheck size={12} className="mr-1.5" />
+              )}
+              {isProcessing ? 'Sending...' : isSuccess ? 'Sent!' : 'Approve & Send'}
             </button>
             <button
               onClick={() => onAction(item.id, 'edit')}
-              className="px-4 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg flex items-center transition-colors cursor-pointer"
+              disabled={isProcessing || isSuccess}
+              className={`px-4 py-2 text-xs font-medium rounded-lg flex items-center transition-all duration-300
+                ${isProcessing || isSuccess 
+                  ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed' 
+                  : 'text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 cursor-pointer hover:scale-105'
+                }`}
             >
               <Edit3 size={12} className="mr-1.5" />
               Edit
             </button>
             <button
               onClick={() => onAction(item.id, 'reject')}
-              className="px-4 py-2 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg flex items-center transition-colors cursor-pointer"
+              disabled={isProcessing || isSuccess}
+              className={`px-4 py-2 text-xs font-medium rounded-lg flex items-center transition-all duration-300
+                ${isProcessing || isSuccess 
+                  ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed' 
+                  : 'text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 cursor-pointer hover:scale-105'
+                }`}
             >
               <Trash2 size={12} className="mr-1.5" />
               Reject
@@ -635,6 +796,14 @@ export const QueuePage: React.FC = () => {
           onSend={(content) => handleSendEditedEmail(showEmailEditor.id, content)}
         />
       )}
+
+      {/* Toast Notifications */}
+      <Toast 
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+        isVisible={toast.visible}
+      />
     </div>
   );
 };

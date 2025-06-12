@@ -38,6 +38,14 @@ export interface EmailContext {
     date: Date;
     isSent: boolean;
   }>;
+  conversationThread?: Array<{
+    from: string;
+    to: string[];
+    subject: string;
+    body: string;
+    date: Date;
+    isSent: boolean;
+  }>;
 }
 
 export interface ReplyGenerationResult {
@@ -533,7 +541,8 @@ CRITICAL NOTES:
     },
     rawContextualInfo: string,
     interactionNetwork: object,
-    strategicRulebook: object
+    strategicRulebook: object,
+    threadContext?: string
   ): Promise<string> {
     try {
       console.log('🧠 Synthesizing context into reply instructions...');
@@ -547,6 +556,7 @@ CRITICAL NOTES:
         .replace('{subject}', originalEmail.subject)
         .replace('{emailDate}', originalEmail.date.toISOString())
         .replace('{emailBody}', originalEmail.body)
+        .replace('{threadContext}', threadContext || "\nNo conversation thread history available.\n")
         .replace('{rawContextualInfo}', rawContextualInfo)
         .replace('{interactionNetwork}', JSON.stringify(interactionNetwork, null, 2))
         .replace('{strategicRulebook}', JSON.stringify(strategicRulebook, null, 2));
@@ -614,12 +624,15 @@ Low - Context synthesis failed, using minimal response strategy`;
     scannerOutput: IncomingEmailScannerOutput,
     calendarContext: string,
     directEmailHistory: string,
-    keywordEmailContext: string
+    keywordEmailContext: string,
+    threadContext?: string
   ): Promise<string> {
     try {
       console.log('🔧 Generating raw contextual information...');
 
       const contextPrompt = readPromptFile('finalToolContextGeneratorPrompt.md');
+
+      const finalThreadContext = threadContext || "\nNo conversation thread history available.\n";
 
       // Format the prompt with all context data
       const formattedPrompt = contextPrompt
@@ -628,6 +641,7 @@ Low - Context synthesis failed, using minimal response strategy`;
         .replace('{subject}', originalEmail.subject)
         .replace('{emailDate}', originalEmail.date.toISOString())
         .replace('{emailBody}', originalEmail.body)
+        .replace('{threadContext}', finalThreadContext)
         .replace('{primaryIntent}', scannerOutput.primaryIntent)
         .replace('{urgencyLevel}', scannerOutput.urgencyLevel)
         .replace('{scannerReasoning}', scannerOutput.reasoning)
@@ -699,6 +713,22 @@ RESPONSE GUIDANCE:
       ? `Communication Style Analysis:\n${styleSummary}\n`
       : "No previous communication history available.\n";
     
+    // Build conversation thread context if available
+    const threadContext = emailContext.conversationThread && emailContext.conversationThread.length > 0
+      ? `\nCONVERSATION THREAD HISTORY (chronological order):\n${
+          emailContext.conversationThread.map((email, index) => {
+            const direction = email.isSent ? "[YOU SENT]" : "[THEY SENT]";
+            const date = email.date.toLocaleDateString();
+            return `${index + 1}. ${direction} on ${date}
+From: ${email.from}
+To: ${email.to.join(', ')}
+Subject: ${email.subject}
+Content: ${email.body.substring(0, 300)}${email.body.length > 300 ? '...' : ''}
+---`;
+          }).join('\n')
+        }\n`
+      : "\nNo conversation thread history available.\n";
+    
 
 
     try {
@@ -711,6 +741,7 @@ RESPONSE GUIDANCE:
         emailBody: emailContext.incomingEmail.body,
         emailDate: emailContext.incomingEmail.date.toISOString(),
         styleContext,
+        threadContext,
         contextualDraftInput: contextualDraft || ''
       });
 
