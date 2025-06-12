@@ -99,12 +99,14 @@ export async function POST(req: Request) {
         const gmailService = new GmailService(oauth.accessToken, oauth.refreshToken || undefined, session.userId);
         
         console.log(`📧 Sending email to ${email.from}...`);
+        console.log(`📧 Threading: Using Message-ID: ${email.rfc2822MessageId} and References: ${email.references}`);
         try {
           const sentMessage = await gmailService.sendEmail({
             to: email.from,
             subject: `Re: ${email.subject}`,
             body: replyContent,
-            inReplyTo: email.messageId,
+            inReplyTo: email.rfc2822MessageId || undefined, // Use proper RFC 2822 Message-ID for threading
+            references: email.references || undefined, // Use existing References chain
             threadId: email.gmailThreadId || undefined, // Use Gmail's actual thread ID for proper threading
           });
           

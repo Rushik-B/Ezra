@@ -14,7 +14,7 @@ Output Instructions:
 
 Example of a good summary format (content will vary based on input):
 
-```markdown
+
 Here's a summary of what I've learned about your communication style:
 
 **Overall Tone & Formality:**
@@ -38,6 +38,6 @@ Here's a summary of what I've learned about your communication style:
 *   Mirror the formality of incoming emails but use this summary as your core voice guide.
 *   Aim for clarity and conciseness in replies.
 *   Proactively offer solutions where appropriate.
-```
+
 
 Do NOT include any text before or after the markdown block that contains the summary itself. Just the summary content. 

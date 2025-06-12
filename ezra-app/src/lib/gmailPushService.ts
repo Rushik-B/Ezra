@@ -354,6 +354,9 @@ export class GmailPushService {
       return {
         messageId: message.id,
         gmailThreadId: message.threadId,
+        rfc2822MessageId: getHeader('Message-ID'),
+        references: getHeader('References'),
+        inReplyTo: getHeader('In-Reply-To'),
         from: getHeader('from'),
         to: getHeader('to').split(',').map((email: string) => email.trim()),
         cc: getHeader('cc').split(',').map((email: string) => email.trim()).filter(Boolean),

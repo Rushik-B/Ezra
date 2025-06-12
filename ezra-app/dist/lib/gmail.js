@@ -109,12 +109,26 @@ class GmailService {
     }
     async sendEmail(params) {
         await this.refreshTokenIfNeeded();
-        const { to, subject, body, inReplyTo, threadId } = params;
+        const { to, subject, body, inReplyTo, references, threadId } = params;
+        // Build proper References chain for email threading
+        let referencesHeader = '';
+        if (references && inReplyTo) {
+            // If we have both references and inReplyTo, combine them
+            referencesHeader = `${references} ${inReplyTo}`;
+        }
+        else if (references) {
+            // If we only have references, use them
+            referencesHeader = references;
+        }
+        else if (inReplyTo) {
+            // If we only have inReplyTo, use it as references too
+            referencesHeader = inReplyTo;
+        }
         const rawMessage = [
             `To: ${to}`,
             `Subject: ${subject}`,
             inReplyTo ? `In-Reply-To: ${inReplyTo}` : '',
-            inReplyTo ? `References: ${inReplyTo}` : '',
+            referencesHeader ? `References: ${referencesHeader}` : '',
             'Content-Type: text/html; charset=utf-8',
             'MIME-Version: 1.0',
             '',
@@ -134,6 +148,12 @@ class GmailService {
             requestBody.threadId = threadId;
         }
         try {
+            console.log(`📧 Sending email with threading headers:`);
+            console.log(`   To: ${to}`);
+            console.log(`   Subject: ${subject}`);
+            console.log(`   In-Reply-To: ${inReplyTo || 'none'}`);
+            console.log(`   References: ${referencesHeader || 'none'}`);
+            console.log(`   Thread ID: ${threadId || 'none'}`);
             const response = await this.gmail.users.messages.send({
                 userId: 'me',
                 requestBody,
@@ -191,6 +211,9 @@ class GmailService {
             return {
                 messageId: message.id,
                 gmailThreadId: message.threadId,
+                rfc2822MessageId: getHeader('Message-ID'),
+                references: getHeader('References'),
+                inReplyTo: getHeader('In-Reply-To'),
                 from,
                 to,
                 cc,
@@ -261,12 +284,18 @@ class GmailService {
                             // Update fields that might have changed
                             snippet: email.snippet,
                             gmailThreadId: email.gmailThreadId,
+                            rfc2822MessageId: email.rfc2822MessageId,
+                            references: email.references,
+                            inReplyTo: email.inReplyTo,
                             updatedAt: new Date()
                         },
                         create: {
                             threadId: thread.id,
                             messageId: email.messageId,
                             gmailThreadId: email.gmailThreadId,
+                            rfc2822MessageId: email.rfc2822MessageId,
+                            references: email.references,
+                            inReplyTo: email.inReplyTo,
                             from: email.from,
                             to: email.to,
                             cc: email.cc,

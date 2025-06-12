@@ -62,6 +62,9 @@ model Email {
   threadId       String
   messageId      String         @unique
   gmailThreadId  String?        // Gmail's actual thread ID for proper threading
+  rfc2822MessageId String?      // RFC 2822 Message-ID header for email threading
+  references     String?        // RFC 2822 References header for threading chain
+  inReplyTo      String?        // RFC 2822 In-Reply-To header
   from           String
   to             String[]
   cc             String[]       @default([])
