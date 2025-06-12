@@ -44,7 +44,7 @@ export class MasterPromptGeneratorService {
       console.log(`Starting Master Prompt generation for user: ${userId}`);
 
       // Fetch user's sent emails - use many more for better analysis
-      const sentEmails = await this.fetchUserSentEmails(userId, 2000); // Increased to 2000 emails
+      const sentEmails = await this.fetchUserSentEmails(userId, 200); // Increased to 2000 emails
 
       if (sentEmails.length === 0) {
         throw new Error('No sent emails found for Master Prompt generation');
@@ -90,7 +90,7 @@ export class MasterPromptGeneratorService {
   async generateInteractionNetwork(userId: string): Promise<GeneratedInteractionNetwork> {
     try {
       console.log(`Starting Interaction Network generation for user: ${userId}`);
-      const sentEmails = await this.fetchUserSentEmails(userId, 500);
+      const sentEmails = await this.fetchUserSentEmails(userId, 200);
       
       if (sentEmails.length === 0) {
         throw new Error('No sent emails found for Interaction Network generation');
@@ -491,7 +491,7 @@ export class MasterPromptGeneratorService {
   /**
    * Fetch user's sent emails for analysis - using large limit for 1M context window
    */
-  private async fetchUserSentEmails(userId: string, limit: number = 1000) {
+  private async fetchUserSentEmails(userId: string, limit: number = 200) {
     const emails = await prisma.email.findMany({
       where: {
         thread: { userId },
@@ -511,7 +511,7 @@ export class MasterPromptGeneratorService {
     });
 
     return emails.filter(email => 
-      email.body.length > 20 && // Filter out very short emails
+      email.body.length > 10 && // Filter out very short emails
       !this.isAutoReply(email.body) // Filter out auto-replies
     );
   }
