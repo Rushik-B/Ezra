@@ -353,6 +353,7 @@ export class GmailPushService {
 
       return {
         messageId: message.id,
+        gmailThreadId: message.threadId,
         from: getHeader('from'),
         to: getHeader('to').split(',').map((email: string) => email.trim()),
         cc: getHeader('cc').split(',').map((email: string) => email.trim()).filter(Boolean),

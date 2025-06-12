@@ -4,6 +4,7 @@ import { EmailContextQuery } from '@/types/worker'
 
 export interface EmailData {
   messageId: string
+  gmailThreadId?: string // Gmail's actual thread ID
   from: string
   to: string[]
   cc: string[]
@@ -17,6 +18,7 @@ export interface EmailData {
 
 interface GmailMessage {
   id: string
+  threadId?: string // Gmail's thread ID
   payload: {
     headers: Array<{ name: string; value: string }>
     body?: { data?: string }
@@ -249,6 +251,7 @@ export class GmailService {
 
       return {
         messageId: message.id,
+        gmailThreadId: message.threadId,
         from,
         to,
         cc,
@@ -320,11 +323,13 @@ export class GmailService {
             update: {
               // Update fields that might have changed
               snippet: email.snippet,
+              gmailThreadId: email.gmailThreadId,
               updatedAt: new Date()
             },
             create: {
               threadId: thread.id,
               messageId: email.messageId,
+              gmailThreadId: email.gmailThreadId,
               from: email.from,
               to: email.to,
               cc: email.cc,

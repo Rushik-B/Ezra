@@ -105,10 +105,7 @@ export async function POST(req: Request) {
             subject: `Re: ${email.subject}`,
             body: replyContent,
             inReplyTo: email.messageId,
-            // NOTE: We don't pass threadId here because:
-            // 1. Our database threadId is a UUID, not Gmail's thread ID format
-            // 2. Gmail automatically handles threading via In-Reply-To header
-            // 3. This prevents "Invalid thread_id value" errors
+            threadId: email.gmailThreadId || undefined, // Use Gmail's actual thread ID for proper threading
           });
           
           console.log(`✅ Email sent successfully! Message ID: ${sentMessage.id}`);
@@ -118,6 +115,7 @@ export async function POST(req: Request) {
             data: {
               threadId: email.threadId,
               messageId: sentMessage.id, // Use real Gmail message ID
+              gmailThreadId: email.gmailThreadId, // Maintain Gmail thread ID for consistency
               from: session.user?.email || 'user@example.com', // User's email as sender
               to: [email.from], // Reply to original sender
               cc: [],

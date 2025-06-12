@@ -61,6 +61,7 @@ model Email {
   thread         Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
   threadId       String
   messageId      String         @unique
+  gmailThreadId  String?        // Gmail's actual thread ID for proper threading
   from           String
   to             String[]
   cc             String[]       @default([])

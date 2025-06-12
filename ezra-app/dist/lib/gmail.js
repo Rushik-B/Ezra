@@ -190,6 +190,7 @@ class GmailService {
             const isDraft = message.labelIds?.includes('DRAFT') || false;
             return {
                 messageId: message.id,
+                gmailThreadId: message.threadId,
                 from,
                 to,
                 cc,
@@ -259,11 +260,13 @@ class GmailService {
                         update: {
                             // Update fields that might have changed
                             snippet: email.snippet,
+                            gmailThreadId: email.gmailThreadId,
                             updatedAt: new Date()
                         },
                         create: {
                             threadId: thread.id,
                             messageId: email.messageId,
+                            gmailThreadId: email.gmailThreadId,
                             from: email.from,
                             to: email.to,
                             cc: email.cc,

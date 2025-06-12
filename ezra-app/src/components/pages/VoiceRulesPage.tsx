@@ -65,6 +65,7 @@ export const VoiceRulesPage: React.FC = () => {
   const [editedPrompt, setEditedPrompt] = useState('');
   const [isDefault, setIsDefault] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null); // For version selection
 
   // Interaction Network
   const [interactionNetwork, setInteractionNetwork] = useState<InteractionNetwork | null>(null);
@@ -239,6 +240,41 @@ export const VoiceRulesPage: React.FC = () => {
       setError('Failed to save Strategic Rulebook. Invalid JSON format?');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const activatePromptVersion = async (promptId: string) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/master-prompt/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptId }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to activate prompt version');
+      }
+      
+      // Refresh current prompt and history
+      await fetchCurrentPrompt();
+      await fetchPromptHistory();
+      setSelectedPromptId(null); // Clear selection after activation
+      
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to activate prompt version');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const selectPromptVersion = (promptId: string) => {
+    const selectedPrompt = promptHistory.find(p => p.id === promptId);
+    if (selectedPrompt) {
+      setSelectedPromptId(promptId);
+      setEditedPrompt(selectedPrompt.prompt);
     }
   };
 
@@ -507,8 +543,150 @@ export const VoiceRulesPage: React.FC = () => {
             )}
           </div>
 
-          {/* ====================== Sidebar (AI tester) ============== */}
-          {/* (unchanged – your existing test-email panel goes here) */}
+          {/* ====================== Sidebar (Prompt Versions) ============== */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Version Management Panel */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <History className="w-5 h-5 mr-2 text-blue-600" />
+                  Prompt Versions
+                </h3>
+                {currentPrompt && (
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                    v{currentPrompt.version}
+                  </span>
+                )}
+              </div>
+              
+              {/* Current Active Version */}
+              {currentPrompt && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-green-800">Active Version</span>
+                    <span className="text-xs text-green-600">v{currentPrompt.version}</span>
+                  </div>
+                  <p className="text-xs text-green-700">
+                    {currentPrompt.isGenerated ? 'AI-Generated' : 'Manual'} • {formatDate(currentPrompt.createdAt)}
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    {currentPrompt.prompt.length} characters
+                  </p>
+                </div>
+              )}
+
+              {/* Version History List */}
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Version History</h4>
+                {promptHistory.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic">No version history available</p>
+                ) : (
+                  promptHistory.map((prompt) => (
+                    <div
+                      key={prompt.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
+                        selectedPromptId === prompt.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : prompt.isActive
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+                      }`}
+                      onClick={() => selectPromptVersion(prompt.id)}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-900">
+                          v{prompt.version}
+                        </span>
+                        <div className="flex items-center space-x-1">
+                          {prompt.isActive && (
+                            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                              Active
+                            </span>
+                          )}
+                          {selectedPromptId === prompt.id && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                              Selected
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-1">
+                        {prompt.isGenerated ? 'AI-Generated' : 'Manual'} • {formatDate(prompt.createdAt)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {prompt.prompt.length} chars
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1 overflow-hidden">
+                        <span className="block truncate">
+                          {prompt.prompt.substring(0, 100)}...
+                        </span>
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              {selectedPromptId && selectedPromptId !== currentPrompt?.id && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => activatePromptVersion(selectedPromptId)}
+                      disabled={isSaving}
+                      className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center"
+                    >
+                      <Wand2 className="w-4 h-4 mr-1" />
+                      {isSaving ? 'Activating...' : 'Activate'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedPromptId(null);
+                        setEditedPrompt(currentPrompt?.prompt || '');
+                      }}
+                      className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    This will make the selected version active and update your AI&apos;s behavior
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Stats */}
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-md">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Brain className="w-5 h-5 mr-2 text-purple-600" />
+                Quick Stats
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Total Versions</span>
+                  <span className="text-sm font-medium text-gray-900">{promptHistory.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">AI Generated</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {promptHistory.filter(p => p.isGenerated).length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Manual</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {promptHistory.filter(p => !p.isGenerated).length}
+                  </span>
+                </div>
+                {currentPrompt && (
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                    <span className="text-sm text-gray-600">Current Length</span>
+                    <span className="text-sm font-medium text-gray-900">{currentPrompt.prompt.length}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>
