@@ -11,6 +11,9 @@ import { HistoryPage } from '@/components/pages/HistoryPage';
 import { MetricsPage } from '@/components/pages/MetricsPage';
 import { VoiceRulesPage } from '@/components/pages/VoiceRulesPage';
 import { SettingsPage } from '@/components/pages/SettingsPage';
+import { FeedbackPage } from '@/components/pages/FeedbackPage';
+import { OnboardingOverlay } from '@/components/ui/OnboardingOverlay';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 
 export const EzraApp: React.FC = () => {
   const { data: session } = useSession();
@@ -19,6 +22,7 @@ export const EzraApp: React.FC = () => {
   const [autoFetchStatus, setAutoFetchStatus] = useState<string>('');
   const [autoFetchCompleted, setAutoFetchCompleted] = useState(false);
   const [initializationStarted, setInitializationStarted] = useState(false);
+  const { isOnboardingComplete, loading: onboardingLoading } = useOnboardingStatus();
 
   // Auto-fetch emails and ensure master prompt when user first loads the app
   useEffect(() => {
@@ -99,12 +103,24 @@ export const EzraApp: React.FC = () => {
         return <VoiceRulesPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'feedback':
+        return <FeedbackPage />;
       default:
         return <QueuePage />;
     }
   };
 
+  const handleOnboardingComplete = () => {
+    // Force a page reload to refresh the app state
+    window.location.reload();
+  };
+
   if (!session) return null;
+
+  // Show onboarding overlay if not complete
+  if (!onboardingLoading && !isOnboardingComplete) {
+    return <OnboardingOverlay onComplete={handleOnboardingComplete} />;
+  }
 
   return (
     <SidebarProvider>
@@ -112,7 +128,10 @@ export const EzraApp: React.FC = () => {
         <AppSidebar activePage={activePage} setActivePage={setActivePage} />
         <main className="flex-1 bg-white border-l border-gray-200 flex flex-col">
                      {/* Top bar and auto-fetch banner */}
-           <TopBar onLogoClick={() => setActivePage('queue')} />
+           <TopBar 
+             onLogoClick={() => setActivePage('queue')} 
+             onFeedbackClick={() => setActivePage('feedback')}
+           />
            {(isAutoFetching || autoFetchStatus) && (
              <div className="bg-blue-50 border-b border-blue-200 px-6 py-3 mt-16 shadow-elegant">
                <div className="flex items-center justify-center max-w-7xl mx-auto">

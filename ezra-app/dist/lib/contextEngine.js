@@ -40,7 +40,12 @@ class ContextEngineService {
                 'No calendar information requested.';
             const directEmailSummary = this.generateDirectEmailSummary(directEmailHistory);
             const keywordEmailSummary = this.generateKeywordEmailSummary(keywordEmailContext);
-            const rawContextualInfo = await this.llmService.invokeFinalToolContextGenerator(incomingEmail, scannerOutput, calendarSummary, directEmailSummary, keywordEmailSummary);
+            // Get thread context for the final tool context generator as well
+            let threadContextForGenerator = "\nNo conversation thread history available.\n";
+            if (incomingEmail.threadId) {
+                threadContextForGenerator = await this.gatherThreadContext(userId, incomingEmail.threadId);
+            }
+            const rawContextualInfo = await this.llmService.invokeFinalToolContextGenerator(incomingEmail, scannerOutput, calendarSummary, directEmailSummary, keywordEmailSummary, threadContextForGenerator);
             // Step 6: Synthesize raw context into actionable reply instructions
             console.log('🧠 Step 6: Synthesizing context into reply instructions...');
             // NEW: Fetch POS modules
@@ -54,7 +59,16 @@ class ContextEngineService {
             });
             console.log(`🤝 Interaction Network found: ${!!interactionNetwork}`);
             console.log(`📜 Strategic Rulebook found: ${!!strategicRulebook}`);
-            const replyInstructions = await this.llmService.invokeContextSynthesizer(incomingEmail, rawContextualInfo, interactionNetwork?.content || {}, strategicRulebook?.content || {});
+            // Step 7: Get thread context if available
+            let threadContext = "\nNo conversation thread history available.\n";
+            if (incomingEmail.threadId) {
+                console.log('🧵 Step 7: Gathering conversation thread context...');
+                threadContext = await this.gatherThreadContext(userId, incomingEmail.threadId);
+            }
+            else {
+                console.log('🧵 Step 7: No thread ID available, skipping thread context');
+            }
+            const replyInstructions = await this.llmService.invokeContextSynthesizer(incomingEmail, rawContextualInfo, interactionNetwork?.content || {}, strategicRulebook?.content || {}, threadContext);
             const result = {
                 calendarData,
                 emailContext: {
@@ -167,6 +181,57 @@ class ContextEngineService {
         catch (error) {
             console.error('❌ Error gathering calendar context:', error);
             return undefined;
+        }
+    }
+    /**
+     * Gather conversation thread context for better reply understanding
+     */
+    async gatherThreadContext(userId, threadId) {
+        try {
+            console.log(`🧵 Fetching conversation thread: ${threadId} for user: ${userId}`);
+            // Get all emails in this thread, ordered chronologically
+            const threadEmails = await prisma_1.prisma.email.findMany({
+                where: {
+                    thread: {
+                        id: threadId,
+                        userId
+                    }
+                },
+                orderBy: {
+                    createdAt: 'asc' // Chronological order - oldest first
+                },
+                select: {
+                    id: true,
+                    from: true,
+                    to: true,
+                    subject: true,
+                    body: true,
+                    createdAt: true,
+                    isSent: true,
+                    messageId: true
+                }
+            });
+            console.log(`🧵 Found ${threadEmails.length} emails in conversation thread`);
+            if (threadEmails.length === 0) {
+                return "\nNo conversation thread history available.\n";
+            }
+            const threadContext = `\nCONVERSATION THREAD HISTORY (chronological order):\n${threadEmails.map((email, index) => {
+                const direction = email.isSent ? "[YOU SENT]" : "[THEY SENT]";
+                const date = email.createdAt.toLocaleDateString();
+                return `${index + 1}. ${direction} on ${date}
+From: ${email.from}
+To: ${email.to.join(', ')}
+Subject: ${email.subject}
+Content: ${email.body.substring(0, 300)}${email.body.length > 300 ? '...' : ''}
+---`;
+            }).join('\n')}\n`;
+            console.log(`📅 Thread spans: ${threadEmails[0].createdAt.toISOString()} to ${threadEmails[threadEmails.length - 1].createdAt.toISOString()}`);
+            console.log(`📧 Thread participants: ${[...new Set(threadEmails.flatMap(e => [e.from, ...e.to]))].join(', ')}`);
+            return threadContext;
+        }
+        catch (error) {
+            console.error('Error fetching conversation thread:', error);
+            return "\nError fetching conversation thread history.\n";
         }
     }
     /**

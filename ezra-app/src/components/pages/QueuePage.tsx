@@ -534,10 +534,10 @@ export const QueuePage: React.FC = () => {
     
     return (
       <div 
-        className={`group bg-white border rounded-2xl p-6 transition-all duration-500 cursor-pointer shadow-elegant
-          ${isProcessing ? 'border-blue-300 bg-blue-50/30 animate-pulse' : 
-            isSuccess ? 'border-emerald-300 bg-emerald-50/30 scale-[1.02]' : 
-            'border-gray-200 hover:shadow-elegant-md'}`}
+        className={`group bg-white border rounded-2xl p-6 transition-all duration-500 cursor-pointer transform
+          ${isProcessing ? 'border-blue-300 bg-blue-50/30 animate-pulse shadow-lg shadow-blue-100/50' : 
+            isSuccess ? 'border-emerald-300 bg-emerald-50/30 scale-[1.02] shadow-lg shadow-emerald-100/50' : 
+            'border-gray-200 shadow-md hover:shadow-xl hover:shadow-gray-200/50 hover:-translate-y-1 hover:scale-[1.01]'}`}
         onClick={() => !isProcessing && !isSuccess && setShowEmailViewer(item)}
       >
         <div className="flex justify-between items-start mb-4">
@@ -571,10 +571,13 @@ export const QueuePage: React.FC = () => {
         </div>
         
         {item.draftPreview && (
-          <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-xl shadow-elegant">
+          <div className="mb-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50/30 border border-gray-200 rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-medium text-gray-700">AI Generated Reply:</span>
-              <span className="text-xs text-emerald-600">Ready to send</span>
+              <span className="text-xs font-medium text-gray-700 flex items-center">
+                <MessageSquare size={12} className="mr-1.5 text-blue-600" />
+                AI Generated Reply:
+              </span>
+              <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full font-medium">Ready to send</span>
             </div>
             <p className="text-sm text-gray-800 leading-relaxed">
               {item.draftPreview}

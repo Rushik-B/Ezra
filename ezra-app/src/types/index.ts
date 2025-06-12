@@ -93,7 +93,7 @@ export interface EmailStats {
   threadCount: number;
 }
 
-export type PageType = 'queue' | 'history' | 'metrics' | 'voice' | 'settings';
+export type PageType = 'queue' | 'history' | 'metrics' | 'voice' | 'settings' | 'feedback';
 
 // New types for Calendar Service
 export interface CalendarEvent {

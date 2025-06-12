@@ -8,7 +8,6 @@ import {
   Settings2,
   Settings,
   Bot,
-  LifeBuoy,
   Send,
   Circle,
   Star,
@@ -111,14 +110,10 @@ export function AppSidebar({ activePage, setActivePage, ...props }: AppSidebarPr
 
   const navSecondary = [
     {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
       title: "Feedback",
       url: "#",
       icon: Send,
+      pageType: 'feedback' as PageType,
     },
   ]
 
@@ -153,7 +148,7 @@ export function AppSidebar({ activePage, setActivePage, ...props }: AppSidebarPr
       <SidebarContent>
         <NavMain items={navMain} activePage={activePage} setActivePage={setActivePage} />
         <NavProjects projects={emailLabels} />
-        <NavSecondary items={navSecondary} className="mt-auto" />
+        <NavSecondary items={navSecondary} setActivePage={setActivePage} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} setActivePage={setActivePage} />

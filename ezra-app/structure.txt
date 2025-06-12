@@ -44,6 +44,12 @@
 │   │   │   └── migration.sql
 │   │   ├── 20250611203421_add_onboarding_completion_flags
 │   │   │   └── migration.sql
+│   │   ├── 20250611235631_add_gmail_thread_id
+│   │   │   └── migration.sql
+│   │   ├── 20250612001523_add_rfc2822_message_id
+│   │   │   └── migration.sql
+│   │   ├── 20250612001658_add_threading_headers
+│   │   │   └── migration.sql
 │   │   └── migration_lock.toml
 │   └── schema.prisma
 ├── public
@@ -109,6 +115,8 @@
 │   │   │   │   │   └── route.ts
 │   │   │   │   └── route.ts
 │   │   │   ├── test-email
+│   │   │   │   └── route.ts
+│   │   │   ├── test-gmail-flow
 │   │   │   │   └── route.ts
 │   │   │   ├── test-reply-generation
 │   │   │   │   └── route.ts

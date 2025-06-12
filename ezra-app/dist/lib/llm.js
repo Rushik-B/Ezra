@@ -406,7 +406,7 @@ CRITICAL NOTES:
     /**
      * Synthesize raw contextual information into actionable reply instructions
      */
-    async invokeContextSynthesizer(originalEmail, rawContextualInfo, interactionNetwork, strategicRulebook) {
+    async invokeContextSynthesizer(originalEmail, rawContextualInfo, interactionNetwork, strategicRulebook, threadContext) {
         try {
             console.log('🧠 Synthesizing context into reply instructions...');
             const synthesizerPrompt = (0, prompts_2.readPromptFile)('contextSynthesizerPrompt.md');
@@ -417,6 +417,7 @@ CRITICAL NOTES:
                 .replace('{subject}', originalEmail.subject)
                 .replace('{emailDate}', originalEmail.date.toISOString())
                 .replace('{emailBody}', originalEmail.body)
+                .replace('{threadContext}', threadContext || "\nNo conversation thread history available.\n")
                 .replace('{rawContextualInfo}', rawContextualInfo)
                 .replace('{interactionNetwork}', JSON.stringify(interactionNetwork, null, 2))
                 .replace('{strategicRulebook}', JSON.stringify(strategicRulebook, null, 2));
@@ -468,10 +469,11 @@ Low - Context synthesis failed, using minimal response strategy`;
     /**
      * Generate raw contextual information from all gathered data
      */
-    async invokeFinalToolContextGenerator(originalEmail, scannerOutput, calendarContext, directEmailHistory, keywordEmailContext) {
+    async invokeFinalToolContextGenerator(originalEmail, scannerOutput, calendarContext, directEmailHistory, keywordEmailContext, threadContext) {
         try {
             console.log('🔧 Generating raw contextual information...');
             const contextPrompt = (0, prompts_2.readPromptFile)('finalToolContextGeneratorPrompt.md');
+            const finalThreadContext = threadContext || "\nNo conversation thread history available.\n";
             // Format the prompt with all context data
             const formattedPrompt = contextPrompt
                 .replace('{fromEmail}', originalEmail.from)
@@ -479,6 +481,7 @@ Low - Context synthesis failed, using minimal response strategy`;
                 .replace('{subject}', originalEmail.subject)
                 .replace('{emailDate}', originalEmail.date.toISOString())
                 .replace('{emailBody}', originalEmail.body)
+                .replace('{threadContext}', finalThreadContext)
                 .replace('{primaryIntent}', scannerOutput.primaryIntent)
                 .replace('{urgencyLevel}', scannerOutput.urgencyLevel)
                 .replace('{scannerReasoning}', scannerOutput.reasoning)
