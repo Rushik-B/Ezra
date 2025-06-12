@@ -281,8 +281,8 @@ async function fetchEmailsForUser(userId: string): Promise<void> {
   );
 
   // Fetch emails
-  console.log(`[EMAIL FETCH] Fetching last 500 sent emails from Gmail for user ${userId}...`);
-  const emails = await gmailService.fetchRecentEmails(500);
+  console.log(`[EMAIL FETCH] Fetching last 180 sent emails from Gmail for user ${userId}...`);
+  const emails = await gmailService.fetchRecentEmails(180);
 
   if (emails.length === 0) {
     console.log(`[EMAIL FETCH] No sent emails found for user ${userId}`);

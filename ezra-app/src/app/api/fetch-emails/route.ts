@@ -70,7 +70,7 @@ export async function POST() {
 
     // Fetch emails
     console.log('Fetching emails from Gmail...')
-    const emails = await gmailService.fetchRecentEmails(200)
+    const emails = await gmailService.fetchRecentEmails(180)
 
     if (emails.length === 0) {
       console.log('No emails found to process')

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ezra - AI Email Assistant",
+  title: "Ezra",
   description: "Your AI-powered email assistant for Gmail",
 };
 

@@ -239,8 +239,8 @@ async function fetchEmailsForUser(userId) {
     // Initialize Gmail service
     const gmailService = new gmail_1.GmailService(oauthAccount.accessToken, oauthAccount.refreshToken || undefined, userId);
     // Fetch emails
-    console.log(`[EMAIL FETCH] Fetching last 500 sent emails from Gmail for user ${userId}...`);
-    const emails = await gmailService.fetchRecentEmails(500);
+    console.log(`[EMAIL FETCH] Fetching last 180 sent emails from Gmail for user ${userId}...`);
+    const emails = await gmailService.fetchRecentEmails(180);
     if (emails.length === 0) {
         console.log(`[EMAIL FETCH] No sent emails found for user ${userId}`);
         // Mark as fetched even if no emails found

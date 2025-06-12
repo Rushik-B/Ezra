@@ -44,7 +44,7 @@ export class MasterPromptGeneratorService {
       console.log(`Starting Master Prompt generation for user: ${userId}`);
 
       // Fetch user's sent emails - use many more for better analysis
-      const sentEmails = await this.fetchUserSentEmails(userId, 200); // Increased to 2000 emails
+      const sentEmails = await this.fetchUserSentEmails(userId, 180); // Optimized to 180 emails
 
       if (sentEmails.length === 0) {
         throw new Error('No sent emails found for Master Prompt generation');
@@ -90,7 +90,7 @@ export class MasterPromptGeneratorService {
   async generateInteractionNetwork(userId: string): Promise<GeneratedInteractionNetwork> {
     try {
       console.log(`Starting Interaction Network generation for user: ${userId}`);
-      const sentEmails = await this.fetchUserSentEmails(userId, 200);
+      const sentEmails = await this.fetchUserSentEmails(userId, 180);
       
       if (sentEmails.length === 0) {
         throw new Error('No sent emails found for Interaction Network generation');
@@ -124,7 +124,7 @@ export class MasterPromptGeneratorService {
   async generateStrategicRulebook(userId: string): Promise<GeneratedStrategicRulebook> {
     try {
       console.log(`Starting Strategic Rulebook generation for user: ${userId}`);
-      const sentEmails = await this.fetchUserSentEmails(userId, 500);
+      const sentEmails = await this.fetchUserSentEmails(userId, 180);
       
       if (sentEmails.length === 0) {
         throw new Error('No sent emails found for Strategic Rulebook generation');
@@ -491,7 +491,7 @@ export class MasterPromptGeneratorService {
   /**
    * Fetch user's sent emails for analysis - using large limit for 1M context window
    */
-  private async fetchUserSentEmails(userId: string, limit: number = 200) {
+  private async fetchUserSentEmails(userId: string, limit: number = 180) {
     const emails = await prisma.email.findMany({
       where: {
         thread: { userId },

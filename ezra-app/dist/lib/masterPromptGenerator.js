@@ -22,7 +22,7 @@ class MasterPromptGeneratorService {
         try {
             console.log(`Starting Master Prompt generation for user: ${userId}`);
             // Fetch user's sent emails - use many more for better analysis
-            const sentEmails = await this.fetchUserSentEmails(userId, 2000); // Increased to 2000 emails
+            const sentEmails = await this.fetchUserSentEmails(userId, 180); // Optimized to 180 emails
             if (sentEmails.length === 0) {
                 throw new Error('No sent emails found for Master Prompt generation');
             }
@@ -59,7 +59,7 @@ class MasterPromptGeneratorService {
     async generateInteractionNetwork(userId) {
         try {
             console.log(`Starting Interaction Network generation for user: ${userId}`);
-            const sentEmails = await this.fetchUserSentEmails(userId, 500);
+            const sentEmails = await this.fetchUserSentEmails(userId, 180);
             if (sentEmails.length === 0) {
                 throw new Error('No sent emails found for Interaction Network generation');
             }
@@ -88,7 +88,7 @@ class MasterPromptGeneratorService {
     async generateStrategicRulebook(userId) {
         try {
             console.log(`Starting Strategic Rulebook generation for user: ${userId}`);
-            const sentEmails = await this.fetchUserSentEmails(userId, 500);
+            const sentEmails = await this.fetchUserSentEmails(userId, 180);
             if (sentEmails.length === 0) {
                 throw new Error('No sent emails found for Strategic Rulebook generation');
             }
@@ -412,7 +412,7 @@ class MasterPromptGeneratorService {
     /**
      * Fetch user's sent emails for analysis - using large limit for 1M context window
      */
-    async fetchUserSentEmails(userId, limit = 1000) {
+    async fetchUserSentEmails(userId, limit = 180) {
         const emails = await prisma_1.prisma.email.findMany({
             where: {
                 thread: { userId },
@@ -430,7 +430,7 @@ class MasterPromptGeneratorService {
                 thread: true
             }
         });
-        return emails.filter(email => email.body.length > 20 && // Filter out very short emails
+        return emails.filter(email => email.body.length > 10 && // Filter out very short emails
             !this.isAutoReply(email.body) // Filter out auto-replies
         );
     }

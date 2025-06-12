@@ -96,7 +96,7 @@ export class GmailService {
     }
   }
 
-  async fetchRecentEmails(maxResults: number = 500): Promise<EmailData[]> {
+  async fetchRecentEmails(maxResults: number = 180): Promise<EmailData[]> {
     try {
       console.log(`Fetching ${maxResults} recent emails...`)
       
