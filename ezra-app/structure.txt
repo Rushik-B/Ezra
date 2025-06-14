@@ -130,6 +130,8 @@
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   ├── page.tsx
+│   │   ├── privacy
+│   │   │   └── page.tsx
 │   │   └── tools
 │   │       └── test-email
 │   │           └── page.tsx
