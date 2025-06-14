@@ -1,440 +1,449 @@
-# Ezra - AI Email Assistant
+# Ezra - AI-Powered Email Assistant
 
-Ezra is an AI-powered email assistant that helps generate contextually appropriate email replies using advanced language models.
+[![Next.js](https://img.shields.io/badge/Next.js-15.3.3-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.8.2-2D3748)](https://www.prisma.io/)
+[![Google Gemini](https://img.shields.io/badge/Google%20Gemini-2.5%20Flash-4285F4)](https://ai.google.dev/)
 
-## Features
+Ezra is an intelligent email assistant that learns your communication style and automatically generates personalized email replies. Built with advanced AI, real-time Gmail integration, and sophisticated context analysis.
 
-- **Intelligent Reply Generation**: Uses Google's Gemini LLM to generate professional email replies
-- **Style Analysis**: Analyzes historical email patterns to match your communication style
-- **Master Prompt System**: Customizable prompts to define your email personality and preferences
-- **Gmail Integration**: Seamlessly integrates with Gmail for email fetching and management
-- **Authentication**: Secure OAuth integration with Google
+## 🚀 Features
 
-## Architecture
+### Core Capabilities
+- **AI-Powered Reply Generation**: Generates contextually appropriate email responses using Google Gemini 2.5 Flash
+- **Personalized Communication Style**: Learns from your email history to match your unique voice and tone
+- **Real-time Gmail Integration**: Processes incoming emails automatically via Gmail Push Notifications
+- **Contextual Intelligence**: Analyzes calendar, email history, and conversation threads for informed responses
+- **Queue-Based Processing**: Review, edit, approve, or reject AI-generated drafts before sending
+- **Multi-Modal Context Engine**: Integrates calendar data, email history, and conversation context
 
-### Reply Generation Flow
+### Advanced Features
+- **Master Prompt System**: AI-generated personalized communication profiles
+- **Interaction Network**: Maps your professional relationships and communication patterns
+- **Strategic Rulebook**: Learns your decision-making patterns and response strategies
+- **Email Threading**: Proper RFC 2822 compliant email threading for conversation continuity
+- **Background Processing**: Scalable job queue system for handling multiple users
+- **Token Usage Optimization**: Intelligent rate limiting and cost optimization for AI API calls
 
-The system follows a sophisticated flow for generating email replies:
+## 🏗️ Architecture
 
-1. **Trigger**: When an incoming email is received (e.g., from boss@xyz.company)
-2. **History Fetch**: System fetches all previous emails from the sender
-3. **Conditional Processing**:
-   - **If emails exist**: Uses Master LLM Prompt + Style Summary + Incoming Email
-   - **If no emails exist**: Uses only Master LLM Prompt + Incoming Email
-4. **Reply Generation**: Gemini LLM generates an appropriate reply with confidence scoring
+### Technology Stack
 
-### Key Components
+#### Frontend
+- **Next.js 15.3.3** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling
+- **Radix UI** - Accessible component primitives
+- **Lucide React** - Icon library
 
-#### LLM Service (`src/lib/llm.ts`)
-- **LLMService**: Main class for interacting with Gemini LLM
-- **generateStyleSummary()**: Analyzes historical emails to extract communication patterns
-- **generateReply()**: Generates contextually appropriate email replies
-- **DEFAULT_MASTER_PROMPT**: Fallback prompt when users don't have custom prompts
+#### Backend
+- **Next.js API Routes** - Serverless API endpoints
+- **Prisma 6.8.2** - Database ORM and migrations
+- **PostgreSQL** - Primary database (Supabase)
+- **BullMQ** - Redis-based job queue system
+- **IORedis** - Redis client for queue management
 
-#### Reply Generator (`src/lib/replyGenerator.ts`)
-- **ReplyGeneratorService**: Orchestrates the entire reply generation flow
-- **generateReply()**: Main entry point following the conditional flow
-- **fetchEmailHistory()**: Retrieves relevant email history from database
-- **getMasterPrompt()**: Fetches user's active master prompt
+#### AI & ML
+- **Google Gemini 2.5 Flash** - Primary LLM for reply generation
+- **LangChain** - AI framework for prompt management
+- **js-tiktoken** - Token counting for cost optimization
 
-#### API Endpoints
+#### External Integrations
+- **Gmail API** - Email reading and sending
+- **Google Calendar API** - Calendar context integration
+- **Google Cloud Pub/Sub** - Real-time push notifications
+- **NextAuth.js** - OAuth authentication
 
-##### `/api/generate-reply` (POST)
-Generates a reply for an incoming email.
+#### Infrastructure
+- **Vercel** - Frontend deployment and serverless functions
+- **Heroku** - Background worker processes
+- **Redis** - Job queue and caching
+- **Supabase** - PostgreSQL database hosting
 
-**Request Body:**
-```json
-{
-  "incomingEmail": {
-    "from": "sender@example.com",
-    "to": ["user@example.com"],
-    "subject": "Meeting Request",
-    "body": "Email content...",
-    "date": "2024-01-01T00:00:00Z"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "reply": "Generated email reply...",
-  "confidence": 85,
-  "reasoning": "Reply reasoning...",
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-##### `/api/master-prompt` (GET/POST/PUT)
-Manages user master prompts.
-
-- **GET**: Retrieves active master prompt
-- **POST**: Creates new master prompt
-- **PUT**: Updates existing master prompt
-
-### Database Schema
-
-#### MasterPrompt Model
-```prisma
-model MasterPrompt {
-  id         String    @id @default(cuid())
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String
-  prompt     String    @db.Text
-  version    Int       @default(1)
-  isActive   Boolean   @default(true)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-}
-```
-
-## Environment Variables
-
-Create a `.env.local` file with the following variables:
-
-```env
-# Database
-DATABASE_URL="postgresql://username:password@hostname:port/database"
-
-# NextAuth
-NEXTAUTH_SECRET="your-nextauth-secret-here"
-NEXTAUTH_URL="http://localhost:3000"
-
-# Google OAuth (for Gmail access)
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-
-# Google AI API (for Gemini LLM)
-GOOGLE_API_KEY="your-google-ai-api-key"
-```
-
-## Installation
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install --legacy-peer-deps
-   ```
-3. Set up environment variables
-4. Run database migrations:
-   ```bash
-   npx prisma migrate dev
-   ```
-5. Generate Prisma client:
-   ```bash
-   npx prisma generate
-   ```
-6. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-## Dependencies
-
-### Core Dependencies
-- **Next.js 15.3.3**: React framework
-- **React 19**: UI library
-- **Prisma 6.8.2**: Database ORM
-- **NextAuth 4.24.11**: Authentication
-
-### LLM & AI Dependencies
-- **@langchain/google-genai 0.0.26**: Google Gemini integration
-- **@langchain/core 0.2.31**: LangChain core functionality
-- **@langchain/community 0.2.32**: Community integrations
-- **langchain 0.2.20**: Main LangChain library
-- **@google/generative-ai 0.21.0**: Google AI SDK
-
-### Google APIs
-- **googleapis 149.0.0**: Gmail API integration
-
-## Usage
-
-1. **Sign in** with your Google account to authorize Gmail access
-2. **Email Fetching**: System automatically fetches your sent emails for style analysis
-3. **Master Prompt**: Create or customize your master prompt to define your email personality
-4. **Reply Generation**: Use the `/api/generate-reply` endpoint to generate replies for incoming emails
-
-## File Structure
+### System Architecture
 
 ```
-src/
-├── app/
-│   ├── api/
-│   │   ├── generate-reply/route.ts    # Reply generation endpoint
-│   │   └── master-prompt/route.ts     # Master prompt management
-├── lib/
-│   ├── llm.ts                         # LLM service with Gemini integration
-│   ├── replyGenerator.ts              # Main reply generation logic
-│   ├── gmail.ts                       # Gmail API integration
-│   └── auth.ts                        # Authentication configuration
-└── components/                        # UI components
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   API Routes    │    │  Background     │
+│   (Next.js)     │◄──►│   (Serverless)  │◄──►│  Workers        │
+│                 │    │                 │    │  (Heroku)       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Database      │    │   Redis Queue   │    │   Gmail API     │
+│   (Supabase)    │    │   (BullMQ)      │    │   Push Notifs   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## Contributing
+## 🔄 Email Processing Pipeline
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Setup Instructions
-
-### 1. Supabase Database Setup
-
-1. Go to [Supabase](https://supabase.com/) and create a new project
-2. Wait for the database to be ready
-3. Go to Settings > Database and copy the connection string
-4. Replace `[YOUR-PASSWORD]` in the connection string with your actual password
-
-### 2. Google Cloud Console Setup
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Gmail API:
-   - Go to "APIs & Services" > "Library"
-   - Search for "Gmail API" and enable it
-4. Create OAuth 2.0 credentials:
-   - Go to "APIs & Services" > "Credentials"
-   - Click "Create Credentials" > "OAuth 2.0 Client IDs"
-   - Choose "Web application"
-   - Add authorized redirect URIs:
-     - `http://localhost:3000/api/auth/callback/google` (for development)
-     - Add your production URL when deploying
-5. Copy the Client ID and Client Secret
-
-### 3. Environment Variables
-
-Update the `.env.local` file with your credentials:
-
-```env
-# NextAuth Configuration
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-here-change-this-in-production
-
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# Supabase Database Configuration
-DATABASE_URL=your-supabase-database-url-here
+### 1. Email Ingestion
 ```
+Gmail Push Notification → Webhook → Parse Payload → Fetch New Emails → Store in Database
+```
+- **Push Notifications**: Google Cloud Pub/Sub integration for real-time email detection
+- **Deduplication**: In-memory locks prevent duplicate processing
+- **History Tracking**: Gmail history ID management for incremental fetching
+- **Threading Support**: RFC 2822 Message-ID, References, and In-Reply-To headers
 
-### 4. Generate NextAuth Secret
+### 2. Context Analysis Pipeline
+```
+Incoming Email → Email Scanner → Context Engine → Calendar/History Analysis → Contextual Draft
+```
+- **Email Scanner**: LLM analyzes email to determine context requirements
+- **Calendar Integration**: Checks availability and relevant events when needed
+- **Email History**: Retrieves conversation threads and sender-specific patterns
+- **POS Integration**: Uses Interaction Network and Strategic Rulebook for context
 
-Generate a secure secret for NextAuth:
+### 3. Reply Generation Pipeline
+```
+Contextual Draft → Master Prompt → Style Analysis → Reply Generator → Confidence Scoring
+```
+- **Mode A (Instruction-Guided)**: Uses contextual draft as strategic guidance
+- **Mode B (Traditional)**: Generates from scratch using Master Prompt
+- **Style Compression**: Efficient sender-specific adaptation
+- **Confidence Scoring**: 0-100 based on available context and patterns
 
+### 4. User Review & Sending
+```
+Generated Reply → Queue Display → User Review → Approve/Edit/Reject → Send via Gmail API
+```
+- **Queue Interface**: Real-time display of pending replies
+- **Edit Capability**: Full email editor with original context
+- **Feedback Loop**: User actions improve future generations
+- **Proper Threading**: Maintains conversation continuity
+
+## 📊 Database Schema
+
+### Core Models
+
+#### User Management
+- **User**: Core user profile with onboarding status tracking
+- **OAuthAccount**: Google OAuth tokens and refresh management
+- **UserSettings**: User preferences and Gmail history tracking
+
+#### Email System
+- **Thread**: Email conversation groupings
+- **Email**: Individual email messages with RFC 2822 headers
+- **GeneratedReply**: AI-generated draft responses
+- **Feedback**: User actions on generated replies
+
+#### AI Personalization
+- **MasterPrompt**: User's communication style profile
+- **InteractionNetwork**: Professional relationship mapping
+- **StrategicRulebook**: Decision-making pattern analysis
+
+#### Activity Tracking
+- **ActionHistory**: Complete audit trail of user actions
+- **Embedding**: Vector embeddings for semantic search (future)
+
+### Key Database Features
+- **Email Threading**: Proper RFC 2822 Message-ID, References, and In-Reply-To headers
+- **Version Management**: Versioned Master Prompts with activation system
+- **Onboarding Tracking**: Boolean flags for completion status
+- **Audit Trail**: Complete action history for analytics
+
+## 🤖 AI System Design
+
+### Master Prompt Generation
+The system analyzes 180+ sent emails to create a personalized communication profile:
+
+1. **Email Corpus Analysis**: Extracts patterns from user's sent emails
+2. **Style Derivation**: Identifies tone, formality, structure preferences
+3. **Distillation**: Creates user-editable summary while maintaining full context
+4. **Confidence Scoring**: Based on email volume and pattern consistency
+
+### Context Engine
+Multi-stage contextual analysis for informed replies:
+
+1. **Email Scanner**: Analyzes incoming email for context requirements
+2. **Calendar Integration**: Checks availability and relevant events
+3. **Email History**: Retrieves conversation threads and sender history
+4. **Context Synthesis**: Combines all inputs into actionable reply instructions
+
+### Reply Generation Modes
+
+#### Mode A: Instruction-Guided
+- Uses contextual draft as strategic guidance
+- Implements specific requirements in user's voice
+- Maintains authenticity while following strategic direction
+
+#### Mode B: Traditional Generation
+- Generates from scratch using Master Prompt
+- Applies sender-specific adaptations
+- Falls back when contextual analysis is insufficient
+
+### Rate Limiting & Optimization
+- **Queue-based Processing**: Prevents API overload with 4-second intervals
+- **Exponential Backoff**: Handles 503/429 errors gracefully with max 30s delay
+- **Token Counting**: Accurate cost tracking with js-tiktoken (GPT-4 encoding)
+- **Model Selection**: Different Gemini models for different complexity levels
+- **In-Memory Locking**: Prevents duplicate push notification processing
+- **Upsert Operations**: Race condition prevention for database writes
+
+## 🔧 Background Job System
+
+### Queue Architecture
+Built on BullMQ with Redis for reliable job processing:
+
+#### Job Types
+1. **Onboarding Queue**: Complete new user setup (email fetch → master prompt → POS components)
+2. **Reply Generation Queue**: Individual email reply generation with context analysis
+3. **Master Prompt Queue**: AI profile generation from 180+ sent emails
+4. **POS Generation Queue**: Interaction Network & Strategic Rulebook generation
+
+#### Worker Configuration
+- **Onboarding**: Concurrency 2, 3 retries with exponential backoff
+- **Master Prompt**: Concurrency 3, 2 retries
+- **POS Generation**: Concurrency 2, 2 retries  
+- **Reply Generation**: Concurrency 5, 2 retries
+
+#### Onboarding Flow Details
+```
+New User → Auto-fetch Emails → Generate Master Prompt → Generate Interaction Network → Generate Strategic Rulebook
+```
+- **Step 1**: Fetch 180 recent sent emails from Gmail
+- **Step 2**: Analyze communication patterns and generate Master Prompt
+- **Step 3**: Create Interaction Network mapping professional relationships
+- **Step 4**: Build Strategic Rulebook with decision-making patterns
+- **Timeout Prevention**: Split into separate functions to avoid 60s Vercel limits
+
+#### Graceful Shutdown
+- Signal handling for SIGTERM/SIGINT
+- Queue cleanup and Redis connection management
+- Job completion before shutdown
+
+## 🔐 Security & Authentication
+
+### OAuth 2.0 Flow
+- **Google OAuth**: Gmail and Calendar API access
+- **Scope Management**: Minimal required permissions
+- **Token Refresh**: Automatic token renewal
+- **Secure Storage**: Encrypted token storage in database
+
+### API Security
+- **Session-based Auth**: NextAuth.js integration
+- **CSRF Protection**: Built-in Next.js protections
+- **Rate Limiting**: API endpoint protection
+- **Input Validation**: Comprehensive request validation
+
+### Data Privacy
+- **Minimal Data Storage**: Only necessary email metadata
+- **User Control**: Complete data deletion capabilities
+- **Audit Logging**: Full action history tracking
+
+## 🚀 Deployment
+
+### Production Environment
+
+#### Frontend (Vercel)
 ```bash
-openssl rand -base64 32
+# Environment Variables
+NEXTAUTH_URL=https://your-domain.com
+NEXTAUTH_SECRET=your-secret
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+DATABASE_URL=your-supabase-url
+REDIS_URL=your-redis-url
+GOOGLE_API_KEY=your-gemini-key
+GOOGLE_CLOUD_PROJECT_ID=your-project-id
 ```
 
-Replace `your-secret-key-here-change-this-in-production` with the generated secret.
+#### Background Workers (Heroku)
+```bash
+# Procfile
+web: npm run start
+worker: npm run worker
 
-### 5. Install Dependencies
+# Required Add-ons
+- Heroku Redis
+- Heroku Postgres (or external Supabase)
+```
 
+#### Gmail Push Notifications Setup
+```bash
+# Create Pub/Sub topic
+gcloud pubsub topics create ezra-email-updates
+
+# Grant Gmail permissions
+gcloud pubsub topics add-iam-policy-binding ezra-email-updates \
+  --member="serviceAccount:gmail-api-push@system.gserviceaccount.com" \
+  --role="roles/pubsub.publisher"
+
+# Create subscription
+gcloud pubsub subscriptions create ezra-email-sub \
+  --topic=ezra-email-updates \
+  --push-endpoint=https://your-domain.com/api/gmail-push/webhook
+```
+
+#### Cron Jobs (Vercel)
+```bash
+# Automatic Gmail watch renewal (daily at 2 AM UTC)
+# Configured in vercel.json
+```
+
+### Development Setup
+
+1. **Clone Repository**
+```bash
+git clone https://github.com/your-username/ezra-app.git
+cd ezra-app
+```
+
+2. **Install Dependencies**
 ```bash
 npm install
 ```
 
-### 6. Database Setup
-
-Run Prisma migrations to set up your database schema:
-
+3. **Environment Setup**
 ```bash
+cp .env.example .env.local
+# Fill in your environment variables
+```
+
+4. **Database Setup**
+```bash
+npx prisma generate
 npx prisma db push
 ```
 
-Generate the Prisma client:
-
+5. **Start Development**
 ```bash
-npx prisma generate
-```
-
-### 7. Run the Development Server
-
-```bash
+# Frontend
 npm run dev
+
+# Background Worker (separate terminal)
+npm run worker
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+## 📈 Performance Optimizations
 
-## How to Use
+### AI Cost Management
+- **Token Counting**: Accurate usage tracking with js-tiktoken
+- **Model Selection**: Gemini 2.5 Flash for complex tasks, 2.0 Flash for lighter operations
+- **Rate Limiting**: 4-second intervals for Gemini free tier
+- **Prompt Optimization**: Efficient prompt engineering with context compression
+- **Global Token Tracking**: Comprehensive usage monitoring across all LLM calls
 
-1. **Sign In**: Click "Sign in with Google" and authorize Gmail access
-2. **Fetch Emails**: Click "Fetch Recent Emails (500)" to import your emails
-3. **View Stats**: See your email count and conversation threads
-4. **Monitor Progress**: Watch the real-time status updates during email fetching
+### Database Optimization
+- **Indexed Queries**: Optimized for userId, createdAt, and email lookups
+- **Connection Pooling**: Efficient Prisma database connections
+- **Selective Loading**: Only fetch required fields with Prisma select
+- **Batch Operations**: Bulk email processing in groups of 10
+- **Upsert Operations**: Prevent race conditions and duplicate records
 
-## Project Structure
+### Caching Strategy
+- **Redis Caching**: BullMQ job queue and session storage
+- **Static Generation**: Pre-built pages where possible
+- **API Response Caching**: Reduced redundant processing
+- **In-Memory Locks**: Prevent duplicate push notification processing
 
-```
-src/
-├── app/
-│   ├── api/
-│   │   ├── auth/[...nextauth]/route.ts  # NextAuth API route
-│   │   ├── fetch-emails/route.ts        # Gmail email fetching API
-│   │   └── email-stats/route.ts         # User email statistics API
-│   ├── auth/signin/page.tsx             # Custom sign-in page
-│   ├── layout.tsx                       # Root layout with SessionProvider
-│   └── page.tsx                         # Main page with email fetching UI
-├── components/
-│   └── SessionProvider.tsx              # Client-side session provider
-├── lib/
-│   ├── auth.ts                          # NextAuth configuration
-│   ├── gmail.ts                         # Gmail API service
-│   └── prisma.ts                        # Prisma client instance
-├── types/
-│   └── next-auth.d.ts                   # TypeScript declarations
-└── prisma/
-    └── schema.prisma                    # Database schema
-```
+### Scalability Features
+- **Serverless Architecture**: Auto-scaling Vercel functions
+- **Background Workers**: Separate Heroku dynos for heavy processing
+- **Queue-based Processing**: Handles multiple users concurrently
+- **Graceful Degradation**: Fallback modes when services are unavailable
 
-## Database Schema
+## ⚡ Technical Challenges & Solutions
 
-The application uses the following main models:
+### Email Threading Complexity
+**Challenge**: Gmail's internal thread IDs vs RFC 2822 standards
+**Solution**: Implemented dual threading system using both Gmail thread IDs and proper RFC 2822 headers (Message-ID, References, In-Reply-To) for universal email client compatibility
 
-- **User**: Core user information and relationships
-- **OAuthAccount**: Google OAuth tokens and account data
-- **Thread**: Email conversation threads grouped by subject
-- **Email**: Individual email messages with full content
-- **Embedding**: Vector embeddings for AI processing (ready for future use)
-- **Feedback**: User feedback on AI-generated responses (ready for future use)
-- **AutonomyRule**: User-defined automation rules (ready for future use)
-- **UserSettings**: User preferences and autonomy levels
+### Race Condition Prevention
+**Challenge**: Multiple push notifications for same email causing duplicate replies
+**Solution**: In-memory locking system with unique keys (`${emailAddress}-${historyId}`) and database upsert operations
 
-## Gmail Integration Features
+### Serverless Timeout Issues
+**Challenge**: 60-second Vercel function limits during user onboarding
+**Solution**: Split onboarding into separate API endpoints with sequential triggering and 5-second delays between LLM calls
 
-### Email Fetching
-- Fetches up to 500 recent emails per user
-- Processes emails in batches of 10 to respect rate limits
-- Excludes chat messages (`-in:chats` query)
-- Handles both sent and received emails
-- Extracts email headers, body, and metadata
+### AI Cost Optimization
+**Challenge**: High token usage with large email contexts
+**Solution**: Multi-stage prompt compression, selective model usage, and accurate token counting with js-tiktoken
 
-### Email Processing
-- Parses HTML and plain text email bodies
-- Extracts sender, recipients, and CC information
-- Groups emails into conversation threads by subject
-- Stores email dates and Gmail labels (SENT, DRAFT)
-- Prevents duplicate email storage
+### Gmail API Rate Limiting
+**Challenge**: 503 errors on Gemini free tier
+**Solution**: Queue-based processing with exponential backoff (max 30s) and 4-second minimum intervals
 
-### Error Handling
-- Graceful handling of API rate limits
-- Continues processing if individual emails fail
-- Detailed logging for debugging
-- User-friendly error messages
+## 🔍 Monitoring & Observability
 
-## Authentication Flow
+### Logging
 
-1. **Unauthenticated**: Shows a clean sign-in page with Google OAuth button
-2. **Authentication**: Creates/updates user in database with OAuth tokens
-3. **Authenticated**: Shows the main dashboard with email fetching capability
-4. **Database Sync**: User data, settings, and OAuth tokens are stored in Supabase
+- **Structured Logging**: Consistent log format across all services
+- **Error Tracking**: Comprehensive error capture with context
+- **Performance Metrics**: Response time and processing duration tracking
+- **Token Usage**: Real-time AI cost monitoring with detailed breakdowns
 
-## Gmail API Permissions
+### Health Checks
+- **Database Connectivity**: Prisma connection health monitoring
+- **Redis Status**: BullMQ queue system health
+- **Gmail API**: OAuth token validity and refresh status
+- **Worker Status**: Background job processing and queue lengths
 
-The app requests the following Gmail scopes:
-- `https://www.googleapis.com/auth/gmail.readonly` - Read Gmail messages
-- `https://www.googleapis.com/auth/gmail.send` - Send emails on behalf of the user
+## 🧪 Testing Strategy
 
-## Database Commands
+### Unit Testing
+- **Service Layer**: Core business logic testing
+- **API Routes**: Endpoint functionality testing
+- **Utility Functions**: Helper function validation
 
-```bash
-# Push schema changes to database
-npx prisma db push
+### Integration Testing
+- **Gmail API**: Email processing workflows
+- **Database Operations**: Data consistency testing
+- **Queue Processing**: Job execution validation
 
-# Generate Prisma client
-npx prisma generate
+### End-to-End Testing
+- **User Workflows**: Complete feature testing
+- **Authentication Flow**: OAuth integration testing
+- **Email Pipeline**: Full processing pipeline testing
 
-# View database in Prisma Studio
-npx prisma studio
+## 🔮 Future Enhancements
 
-# Reset database (development only)
-npx prisma db push --force-reset
-```
+### Planned Features
+- **Multi-Provider Support**: Outlook, Yahoo integration
+- **Advanced Analytics**: Performance dashboards
+- **Team Collaboration**: Shared templates and styles
+- **Mobile Application**: Native mobile experience
+- **Voice Integration**: Voice-to-email capabilities
 
-## API Endpoints
+### Technical Improvements
+- **Vector Search**: Semantic email search
+- **Real-time Updates**: WebSocket integration
+- **Advanced Caching**: Multi-layer caching strategy
+- **Microservices**: Service decomposition for scale
 
-### Authentication
-- `GET/POST /api/auth/[...nextauth]` - NextAuth authentication
+## 📝 Contributing
 
-### Email Management
-- `POST /api/fetch-emails` - Fetch emails from Gmail and store in database
-- `GET /api/email-stats` - Get user's email and thread counts
+### Development Guidelines
+1. **Code Style**: Follow TypeScript and ESLint rules
+2. **Commit Messages**: Use conventional commit format
+3. **Testing**: Include tests for new features
+4. **Documentation**: Update README for significant changes
 
-## Troubleshooting
+### Pull Request Process
+1. Fork the repository
+2. Create feature branch
+3. Implement changes with tests
+4. Submit pull request with description
 
-### Common Issues
+## 📄 License
 
-1. **Database Connection Errors**
-   - Ensure your `DATABASE_URL` is correct in `.env.local`
-   - Make sure your Supabase project is running
-   - Check that you've replaced `[YOUR-PASSWORD]` with your actual password
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-2. **Gmail API Errors**
-   - Verify your Google OAuth credentials are correct
-   - Ensure Gmail API is enabled in Google Cloud Console
-   - Check that redirect URIs match exactly (including protocol and port)
+## 🙏 Acknowledgments
 
-3. **Authentication Errors**
-   - Generate a new `NEXTAUTH_SECRET` if needed
-   - Restart the development server after changing `.env.local`
-   - Clear browser cookies if authentication seems stuck
+- **Google Gemini**: Advanced language model capabilities
+- **Vercel**: Excellent deployment platform
+- **Prisma**: Outstanding database toolkit
+- **BullMQ**: Reliable job queue system
+- **Next.js**: Powerful React framework
 
-4. **Email Fetching Issues**
-   - Check server logs for detailed error messages
-   - Ensure OAuth token has Gmail permissions
-   - Verify user has emails in their Gmail account
+---
 
-### Development Commands
 
-```bash
-# Check TypeScript errors
-npx tsc --noEmit
 
-# Check for linting issues
-npm run lint
-
-# Build for production
-npm run build
-
-# View server logs
-npm run dev (and check terminal output)
-```
-
-## Server Logs
-
-When running `npm run dev`, you'll see detailed logs including:
-- Email fetching progress with batch numbers
-- Individual email processing status
-- Database storage operations
-- Error messages with stack traces
-- Performance metrics
-
-## Next Steps
-
-This foundation is ready for building advanced AI email assistant features:
-
-1. **Email Analysis**: Analyze email patterns and writing style
-2. **AI Integration**: Add OpenAI/Gemini for email analysis and generation
-3. **Vector Storage**: Implement embeddings for email content search
-4. **Smart Replies**: Generate contextual email responses
-5. **Chrome Extension**: Build sidebar for Gmail integration
-6. **Automation Rules**: Implement user-defined email automation
-
-## Tech Stack
-
-- **Framework**: Next.js 15 with App Router
-- **Database**: Supabase (PostgreSQL)
-- **ORM**: Prisma
-- **Authentication**: NextAuth.js with Google OAuth + Custom JWT Strategy
-- **Gmail API**: Google APIs Node.js client
-- **Styling**: Tailwind CSS
-- **Language**: TypeScript
-- **Icons**: React Icons (Heroicons, Google icons)
+For support or questions, please contact: rushik_behal@sfu.ca
 

@@ -689,7 +689,7 @@ export const QueuePage: React.FC = () => {
             Good {greeting}, {firstName}
             </h1>
             <p className="text-gray-600 max-w-2xl leading-relaxed">
-            Ezra wrote the replies — you hit send. That's teamwork.
+            Let Ezra handle the chaos — you just give the final word.
             </p>
           </div>
           

@@ -136,6 +136,8 @@
 │   ├── components
 │   │   ├── EzraApp.tsx
 │   │   ├── SessionProvider.tsx
+│   │   ├── assets
+│   │   │   └── logo.png
 │   │   ├── layout
 │   │   │   ├── TopBar.tsx
 │   │   │   └── app-sidebar.tsx
@@ -145,6 +147,7 @@
 │   │   │   ├── nav-secondary.tsx
 │   │   │   └── nav-user.tsx
 │   │   ├── pages
+│   │   │   ├── FeedbackPage.tsx
 │   │   │   ├── HistoryPage.tsx
 │   │   │   ├── MetricsPage.tsx
 │   │   │   ├── OldVoiceRules.tsx
