@@ -32,23 +32,35 @@ export async function GET() {
       },
     });
 
-    // Map to QueueItem format
-    const queueItems: QueueItem[] = unprocessedEmails.map(email => ({
-      id: email.id,
-      actionSummary: `Reply to: ${email.subject}`,
-      contextSummary: `From: ${email.from}`,
-      status: 'needs-attention',
-      confidence: email.generatedReply!.confidenceScore,
-      draftPreview: email.generatedReply!.draft.substring(0, 150) + '...',
-      fullDraft: email.generatedReply!.draft,
-      metadata: {
-        emailId: email.id,
-        from: email.from,
-        subject: email.subject,
-        body: email.body,
-        receivedAt: email.createdAt.toISOString(),
-      },
-    }));
+    // Log summary for debugging
+    console.log(`📧 Found ${unprocessedEmails.length} unprocessed emails for user ${session.userId}`);
+
+    // Map to QueueItem format - with safety checks for empty drafts
+    const queueItems: QueueItem[] = unprocessedEmails
+      .filter(email => {
+        // Filter out emails with empty or null drafts
+        const hasValidDraft = email.generatedReply?.draft && email.generatedReply.draft.trim().length > 0;
+        if (!hasValidDraft) {
+          console.warn(`⚠️ Filtering out email ${email.id} - empty or null draft: "${email.generatedReply?.draft || 'NULL'}"`);
+        }
+        return hasValidDraft;
+      })
+      .map(email => ({
+        id: email.id,
+        actionSummary: `Reply to: ${email.subject}`,
+        contextSummary: `From: ${email.from}`,
+        status: 'needs-attention',
+        confidence: email.generatedReply!.confidenceScore,
+        draftPreview: email.generatedReply!.draft.substring(0, 150) + '...',
+        fullDraft: email.generatedReply!.draft,
+        metadata: {
+          emailId: email.id,
+          from: email.from,
+          subject: email.subject,
+          body: email.body,
+          receivedAt: email.createdAt.toISOString(),
+        },
+      }));
 
     return NextResponse.json({ success: true, queueItems });
   } catch (error) {
@@ -83,8 +95,14 @@ export async function POST(req: Request) {
       case 'approve':
       case 'edit':
         const replyContent = action === 'edit' ? draftContent : email.generatedReply?.draft;
-        if (!replyContent) {
-          return NextResponse.json({ error: 'No draft content to send' }, { status: 400 });
+        
+        if (!replyContent || replyContent.trim() === '') {
+          console.error(`❌ No valid reply content found for email ${emailId}!`);
+          console.error(`❌ Action: ${action}, has draftContent: ${!!draftContent}, has generatedReply: ${!!email.generatedReply}, has draft: ${!!email.generatedReply?.draft}`);
+          return NextResponse.json({ 
+            error: 'No draft content to send. The generated reply appears to be empty.',
+            details: 'Please try generating a new reply for this email.'
+          }, { status: 400 });
         }
 
         const oauth = await prisma.oAuthAccount.findFirst({
@@ -100,6 +118,7 @@ export async function POST(req: Request) {
         
         console.log(`📧 Sending email to ${email.from}...`);
         console.log(`📧 Threading: Using Message-ID: ${email.rfc2822MessageId} and References: ${email.references}`);
+        console.log(`📧 Reply content length: ${replyContent.length} characters`);
         try {
           const sentMessage = await gmailService.sendEmail({
             to: email.from,

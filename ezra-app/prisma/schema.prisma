@@ -131,13 +131,25 @@ enum ActionType {
 }
 
 model UserSettings {
-  id             String    @id @default(cuid())
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId         String    @unique
-  autonomyLevel  Int       @default(0)   // 0–100 "autonomy dial"
-  gmailHistoryId String?   // Last history ID from Gmail push notifications
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                        String    @id @default(cuid())
+  user                      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                    String    @unique
+  autonomyLevel             Int       @default(0)   // 0–100 "autonomy dial"
+  gmailHistoryId            String?   // Last history ID from Gmail push notifications
+  
+  // Email Filtering Settings
+  replyScope                ReplyScope @default(CONTACTS_ONLY)  // Who can Ezra reply to
+  blockedSenders            String[]  @default([])  // Email addresses/domains to never reply to
+  allowedSenders            String[]  @default([])  // Email addresses/domains to always reply to
+  enablePushNotifications   Boolean   @default(true) // Whether Gmail push notifications are enabled
+  
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+}
+
+enum ReplyScope {
+  ALL_SENDERS       // Reply to anyone
+  CONTACTS_ONLY     // Only reply to contacts
 }
 
 model MasterPrompt {

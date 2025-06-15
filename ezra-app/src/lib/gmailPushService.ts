@@ -2,6 +2,7 @@ import { google } from 'googleapis';
 import { prisma } from './prisma';
 import { GmailService } from './gmail';
 import { ReplyGeneratorService } from './replyGenerator';
+import { EmailFilterService, EmailMessage } from './emailFilterService';
 
 export interface PushNotificationPayload {
   emailAddress: string;
@@ -12,12 +13,15 @@ export class GmailPushService {
   private gmail: any;
   private auth: any;
   private userId: string;
+  private emailFilterService: EmailFilterService;
   
   // Simple in-memory lock to prevent concurrent processing of same notification
   private static processingLocks = new Set<string>();
 
   constructor(accessToken: string, refreshToken?: string, userId?: string) {
     this.userId = userId || '';
+    this.emailFilterService = new EmailFilterService();
+    
     this.auth = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -87,7 +91,7 @@ export class GmailPushService {
   }
 
   /**
-   * Process a Gmail push notification
+   * Process a Gmail push notification with email filtering
    */
   async processPushNotification(payload: PushNotificationPayload): Promise<void> {
     // Create a unique lock key for this notification
@@ -150,10 +154,10 @@ export class GmailPushService {
       if (!lastHistoryId) {
         console.log(`📧 No last history ID found for ${user.id}, fetching recent emails instead of full sync.`);
         // For first notification, get the most recent emails instead of doing full sync
-        newEmails = await this.getRecentEmails(gmailService, 10); // Get last 10 emails
+        newEmails = await this.getRecentEmailsWithLabels(10); // Get last 10 emails with labels
       } else {
         // Get history of changes since last known history ID
-        newEmails = await this.getNewEmailsFromHistory(gmailService, lastHistoryId, payload.historyId);
+        newEmails = await this.getNewEmailsFromHistoryWithLabels(lastHistoryId, payload.historyId);
       }
       
       if (newEmails.length > 0) {
@@ -162,24 +166,73 @@ export class GmailPushService {
         // Store new emails in database
         await gmailService.storeEmailsInDatabase(user.id, newEmails);
         
-        // Generate replies for new, non-sent emails with proper deduplication
+        // Filter and generate replies for new, non-sent emails with filtering
         const replyGenerator = new ReplyGeneratorService();
+        
         for (const emailData of newEmails) {
-          // Use a more robust check that includes database lookup to prevent race conditions
-          const savedEmail = await prisma.email.findUnique({ 
-            where: { messageId: emailData.messageId },
-            include: { generatedReply: true }
-          });
+          const savedEmail = await prisma.email.findUnique({ where: { messageId: emailData.messageId } });
           
-          // Only generate replies for incoming emails, not emails sent by the user
+          // Only process incoming emails, not emails sent by the user
           if (savedEmail && !savedEmail.isSent) {
-            // Double-check if we already have a generated reply for this email
-            if (savedEmail.generatedReply) {
-              console.log(`📧 Reply already exists for email ${savedEmail.id}, skipping generation`);
+            console.log(`🔍 Applying filters to email: ${savedEmail.id} from ${emailData.from}`);
+            
+            // Check if email already has a generated reply to prevent duplicates
+            const existingReply = await prisma.generatedReply.findUnique({
+              where: { emailId: savedEmail.id }
+            });
+            
+            if (existingReply) {
+              console.log(`⚠️ Email ${savedEmail.id} already has a generated reply, skipping`);
               continue;
             }
             
-            console.log(`🤖 Generating reply for new email: ${savedEmail.id}`);
+            // Apply email filtering
+            const emailMessage: EmailMessage = {
+              messageId: emailData.messageId,
+              labelIds: emailData.labelIds || [],
+              from: emailData.from,
+              to: emailData.to,
+              cc: emailData.cc || [],
+              subject: emailData.subject,
+              body: emailData.body
+            };
+            
+            const filterResult = await this.emailFilterService.shouldReplyToEmail(
+              emailMessage, 
+              user.id, 
+              user.email
+            );
+            
+            if (!filterResult.shouldReply) {
+              console.log(`🚫 Email filtered: ${filterResult.reason}`);
+              
+              // Store filter reason in action history for transparency
+              await prisma.actionHistory.create({
+                data: {
+                  userId: user.id,
+                  actionType: 'EMAIL_REJECTED',
+                  actionSummary: `Filtered: ${emailData.from} - ${emailData.subject}`,
+                  actionDetails: {
+                    emailFrom: emailData.from,
+                    emailSubject: emailData.subject,
+                    filterReason: filterResult.reason,
+                    filterCategory: filterResult.category
+                  },
+                  emailReference: savedEmail.id,
+                  undoable: false,
+                  metadata: {
+                    autoFiltered: true,
+                    filterReason: filterResult.reason
+                  }
+                }
+              });
+              
+              continue;
+            }
+            
+            console.log(`✅ Email passed filters: ${filterResult.reason}`);
+            console.log(`🤖 Generating reply for filtered email: ${savedEmail.id}`);
+            
             try {
               const generatedReply = await replyGenerator.generateReply({
                 userId: user.id,
@@ -189,40 +242,36 @@ export class GmailPushService {
                   subject: emailData.subject,
                   body: emailData.body,
                   date: new Date(emailData.date),
-                  threadId: savedEmail.threadId, // Add thread ID for conversation context
                 },
               });
 
               if (generatedReply.reply) {
-                // Use upsert instead of create to handle race conditions gracefully
-                try {
-                  await prisma.generatedReply.upsert({
-                    where: { emailId: savedEmail.id },
-                    update: {
-                      draft: generatedReply.reply,
-                      confidenceScore: generatedReply.confidence,
-                    },
-                    create: {
-                      emailId: savedEmail.id,
-                      draft: generatedReply.reply,
-                      confidenceScore: generatedReply.confidence,
-                    },
-                  });
-                  console.log(`✅ Reply generated and saved for email ${savedEmail.id}`);
-                } catch (upsertError) {
-                  console.log(`📧 Reply already exists for email ${savedEmail.id} (race condition handled)`);
-                }
+                // Use upsert to handle potential race conditions
+                await prisma.generatedReply.upsert({
+                  where: { emailId: savedEmail.id },
+                  update: {
+                    draft: generatedReply.reply,
+                    confidenceScore: generatedReply.confidence,
+                    updatedAt: new Date()
+                  },
+                  create: {
+                    emailId: savedEmail.id,
+                    draft: generatedReply.reply,
+                    confidenceScore: generatedReply.confidence,
+                  },
+                });
+                
+                console.log(`✅ Reply generated and saved for filtered email ${savedEmail.id}`);
               }
             } catch (replyError) {
               console.error(`❌ Error generating reply for email ${savedEmail.id}:`, replyError);
             }
           }
         }
-
-        // Update last history ID ONLY after successful processing
-        await this.updateLastHistoryId(user.id, payload.historyId);
         
-        console.log(`✅ Processed ${newEmails.length} new emails via push notification`);
+        // Update last history ID
+        await this.updateLastHistoryId(user.id, payload.historyId);
+        console.log(`✅ Processed ${newEmails.length} new emails via push notification with filtering`);
       } else {
         console.log(`📧 No new emails found in history update for user ${user.id}`);
         // Still update history ID even if no new emails to prevent reprocessing
@@ -239,11 +288,11 @@ export class GmailPushService {
   }
 
   /**
-   * Get recent emails when no history ID exists (for first-time setup)
+   * Get recent emails with labels when no history ID exists (for first-time setup)
    */
-  private async getRecentEmails(gmailService: GmailService, maxResults: number = 10): Promise<any[]> {
+  private async getRecentEmailsWithLabels(maxResults: number = 10): Promise<any[]> {
     try {
-      console.log(`📧 Fetching ${maxResults} most recent emails from inbox`);
+      console.log(`📧 Fetching ${maxResults} most recent emails from inbox with labels`);
       
       // Use Gmail API directly to get recent inbox emails (not just sent)
       const response = await this.gmail.users.messages.list({
@@ -258,7 +307,7 @@ export class GmailPushService {
         return [];
       }
 
-      // Fetch the actual email content
+      // Fetch the actual email content with labels
       const emails = [];
       for (const message of messages) {
         try {
@@ -267,7 +316,7 @@ export class GmailPushService {
             id: message.id
           });
 
-          const parsedEmail = this.parseGmailMessage(fullMessage.data);
+          const parsedEmail = this.parseGmailMessageWithLabels(fullMessage.data);
           if (parsedEmail && !parsedEmail.isSent) { // Only process incoming emails
             emails.push(parsedEmail);
           }
@@ -276,7 +325,7 @@ export class GmailPushService {
         }
       }
       
-      console.log(`📧 Found ${emails.length} recent incoming emails`);
+      console.log(`📧 Found ${emails.length} recent incoming emails with labels`);
       return emails;
       
     } catch (error) {
@@ -286,9 +335,9 @@ export class GmailPushService {
   }
 
   /**
-   * Get new emails from Gmail history
+   * Get new emails from Gmail history with labels
    */
-  private async getNewEmailsFromHistory(gmailService: GmailService, startHistoryId: string, endHistoryId: string): Promise<any[]> {
+  private async getNewEmailsFromHistoryWithLabels(startHistoryId: string, endHistoryId: string): Promise<any[]> {
     try {
       console.log(`📧 Fetching emails from history ${startHistoryId} to ${endHistoryId}`);
       
@@ -318,7 +367,7 @@ export class GmailPushService {
 
       console.log(`📧 Found ${messageIds.length} new message IDs from history`);
 
-      // Fetch the actual emails
+      // Fetch the actual emails with labels
       const emails = [];
       for (const messageId of messageIds) {
         try {
@@ -327,7 +376,7 @@ export class GmailPushService {
             id: messageId
           });
 
-          const parsedEmail = this.parseGmailMessage(message.data);
+          const parsedEmail = this.parseGmailMessageWithLabels(message.data);
           if (parsedEmail && !parsedEmail.isSent) { // Only process incoming emails
             emails.push(parsedEmail);
           }
@@ -336,7 +385,7 @@ export class GmailPushService {
         }
       }
 
-      console.log(`📧 Successfully parsed ${emails.length} incoming emails from history`);
+      console.log(`📧 Successfully parsed ${emails.length} incoming emails from history with labels`);
       return emails;
     } catch (error) {
       console.error('❌ Error getting emails from history:', error);
@@ -345,9 +394,9 @@ export class GmailPushService {
   }
 
   /**
-   * Parse Gmail message to our email format
+   * Parse Gmail message to our email format WITH LABELS for filtering
    */
-  private parseGmailMessage(message: any): any | null {
+  private parseGmailMessageWithLabels(message: any): any | null {
     try {
       const headers = message.payload?.headers || [];
       const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
@@ -366,6 +415,7 @@ export class GmailPushService {
         snippet: message.snippet || '',
         isSent: message.labelIds?.includes('SENT') || false,
         isDraft: message.labelIds?.includes('DRAFT') || false,
+        labelIds: message.labelIds || [], // Include label IDs for filtering
         date: new Date(parseInt(message.internalDate))
       };
     } catch (error) {

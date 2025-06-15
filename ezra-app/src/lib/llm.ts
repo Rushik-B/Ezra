@@ -791,9 +791,15 @@ Content: ${email.body.substring(0, 300)}${email.body.length > 300 ? '...' : ''}
       const confidenceMatch = response.match(/CONFIDENCE:\s*(\d+)/);
       const reasoningMatch = response.match(/REASONING:\s*([\s\S]*?)$/);
 
-      const reply = replyMatch?.[1]?.trim() || response;
+      let reply = replyMatch?.[1]?.trim() || response.trim();
       const confidence = confidenceMatch?.[1] ? parseInt(confidenceMatch[1]) : 50;
       const reasoning = reasoningMatch?.[1]?.trim() || "Standard reply generation";
+
+      // Validate that reply is not empty
+      if (!reply || reply.length === 0) {
+        console.error("❌ LLM returned empty reply! Full response:", response);
+        reply = "I apologize, but I'm unable to generate a proper reply at this time. Please try again or contact support.";
+      }
 
       return {
         reply,
@@ -803,7 +809,7 @@ Content: ${email.body.substring(0, 300)}${email.body.length > 300 ? '...' : ''}
     } catch (error) {
       console.error("Error parsing reply response:", error);
       return {
-        reply: response,
+        reply: response.trim() || "I apologize, but I'm unable to generate a reply at this time. Please try again later.",
         confidence: 50,
         reasoning: "Unable to parse response format"
       };

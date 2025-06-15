@@ -170,43 +170,60 @@ export class GmailService {
     // Build proper References chain for email threading
     let referencesHeader = '';
     if (references && inReplyTo) {
-      // If we have both references and inReplyTo, combine them
       referencesHeader = `${references} ${inReplyTo}`;
     } else if (references) {
-      // If we only have references, use them
       referencesHeader = references;
     } else if (inReplyTo) {
-      // If we only have inReplyTo, use it as references too
       referencesHeader = inReplyTo;
     }
 
-    // Convert plain text to HTML format for proper email display
-    // This preserves the LLM's intended formatting by converting line breaks to HTML
-    const htmlBody = body
-      .replace(/\n\n/g, '</p><p>') // Double line breaks become paragraph breaks
-      .replace(/\n/g, '<br>') // Single line breaks become <br> tags
-      .replace(/^/, '<p>') // Add opening paragraph tag at start
-      .replace(/$/, '</p>'); // Add closing paragraph tag at end
+    // --- Build a robust multipart/alternative message ---
+    const boundary = `----=_Part_${Math.random().toString(36).substring(2)}`;
 
-    const rawMessage = [
+    // 1. Plain text version
+    const plainBody = body; // The original, unformatted text
+
+    // 2. HTML version
+    const htmlBody = body
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/\n/g, '<br>');
+
+    const emailParts = [
       `To: ${to}`,
       `Subject: ${subject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
       inReplyTo ? `In-Reply-To: ${inReplyTo}` : '',
       referencesHeader ? `References: ${referencesHeader}` : '',
-      'Content-Type: text/html; charset=utf-8',
-      'MIME-Version: 1.0',
       '',
-      htmlBody,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
+      `--${boundary}`,
+      'Content-Type: text/plain; charset=utf-8',
+      'Content-Transfer-Encoding: 7bit',
+      '',
+      plainBody,
+      '',
+      `--${boundary}`,
+      'Content-Type: text/html; charset=utf-8',
+      'Content-Transfer-Encoding: 7bit',
+      '',
+      // Wrap in a simple HTML structure for better compatibility
+      `<!DOCTYPE html><html><body>${htmlBody}</body></html>`,
+      '',
+      `--${boundary}--`
+    ];
+    
+    const rawMessage = emailParts.filter(part => part !== null && part !== undefined).join('\n');
+    
     const encodedMessage = Buffer.from(rawMessage)
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=+$/, '');
-
+    
     const requestBody: { raw: string; threadId?: string } = {
       raw: encodedMessage,
     };
@@ -215,14 +232,10 @@ export class GmailService {
     }
 
     try {
-      console.log(`📧 Sending email with threading headers:`);
-      console.log(`   To: ${to}`);
+      console.log(`📧 Sending multipart email to: ${to}`);
       console.log(`   Subject: ${subject}`);
       console.log(`   In-Reply-To: ${inReplyTo || 'none'}`);
       console.log(`   References: ${referencesHeader || 'none'}`);
-      console.log(`   Thread ID: ${threadId || 'none'}`);
-      console.log(`📧 Original body (first 200 chars): ${body.substring(0, 200)}...`);
-      console.log(`📧 HTML formatted body (first 200 chars): ${htmlBody.substring(0, 200)}...`);
       
       const response = await this.gmail.users.messages.send({
         userId: 'me',

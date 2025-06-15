@@ -231,7 +231,13 @@ const replyWorker = new Worker<ReplyGenerationJobData>('reply-generation', async
 
     job.updateProgress(80);
 
-    // Store the generated reply
+    // Store the generated reply - with validation
+    if (!replyResult.reply || replyResult.reply.trim().length === 0) {
+      console.error(`❌ Generated reply is empty for email ${emailId}!`);
+      console.error(`❌ Reply result:`, replyResult);
+      throw new Error(`Generated reply is empty for email ${emailId}`);
+    }
+
     await prisma.generatedReply.create({
       data: {
         emailId: emailId,
